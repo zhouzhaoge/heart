@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 import argparse
+import csv
 import struct
 import sys
 import time
+from contextlib import ExitStack
 from pathlib import Path
+import shutil
 
 import serial
 
@@ -13,11 +16,57 @@ HEADER_LEN = 40
 TLV_HEADER_LEN = 8
 
 MMWDEMO_OUTPUT_MSG_HEART_RATE = 1001
+MMWDEMO_OUTPUT_MSG_HEART_RATE_DEBUG = 1002
 
 DEFAULT_CFG_PORT = "COM4"
 DEFAULT_DATA_PORT = "COM3"
 DEFAULT_CFG_BAUD = 115200
 DEFAULT_DATA_BAUD = 921600
+
+HEART_RATE_FIELDS = [
+    "frame_number",
+    "subframe_number",
+    "time_cpu_cycles",
+    "heart_rate_bpm",
+    "heart_rate_hz",
+    "confidence",
+    "sample_rate_hz",
+    "range_meters",
+    "selected_range_bin",
+    "window_length",
+    "valid",
+]
+
+HEART_RATE_DEBUG_FIELDS = [
+    "frame_number",
+    "subframe_number",
+    "time_cpu_cycles",
+    "sample_power_mean",
+    "power_threshold",
+    "best_score",
+    "selected_score",
+    "left_neighbor_score",
+    "right_neighbor_score",
+    "guide_freq",
+    "coarse_freq",
+    "fine_freq",
+    "guide_peak_mag",
+    "coarse_peak_mag",
+    "fine_peak_mag",
+    "signal_power",
+    "alpha",
+    "range_step",
+    "selected_range_meters",
+    "best_range_bin",
+    "selected_range_bin",
+    "prev_selected_range_bin",
+    "window_length",
+    "sample_count",
+    "is_filled",
+    "valid",
+    "gate_changed",
+    "search_max_bin",
+]
 
 
 def open_serial(port: str, baudrate: int, timeout: float) -> serial.Serial:
@@ -107,6 +156,53 @@ def parse_heart_rate_payload(payload: bytes) -> dict[str, float | int]:
     }
 
 
+def parse_heart_rate_debug_payload(payload: bytes) -> dict[str, float | int]:
+    values = struct.unpack("<16f10H", payload)
+    return {
+        "sample_power_mean": values[0],
+        "power_threshold": values[1],
+        "best_score": values[2],
+        "selected_score": values[3],
+        "left_neighbor_score": values[4],
+        "right_neighbor_score": values[5],
+        "guide_freq": values[6],
+        "coarse_freq": values[7],
+        "fine_freq": values[8],
+        "guide_peak_mag": values[9],
+        "coarse_peak_mag": values[10],
+        "fine_peak_mag": values[11],
+        "signal_power": values[12],
+        "alpha": values[13],
+        "range_step": values[14],
+        "selected_range_meters": values[15],
+        "best_range_bin": values[16],
+        "selected_range_bin": values[17],
+        "prev_selected_range_bin": values[18],
+        "window_length": values[19],
+        "sample_count": values[20],
+        "is_filled": values[21],
+        "valid": values[22],
+        "gate_changed": values[23],
+        "search_max_bin": values[24],
+    }
+
+
+def create_capture_dir(base_dir: Path, cfg_path: Path) -> Path:
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    capture_dir = base_dir / f"capture_{timestamp}"
+    capture_dir.mkdir(parents=True, exist_ok=False)
+    shutil.copy2(cfg_path, capture_dir / cfg_path.name)
+    return capture_dir
+
+
+def open_csv_writer(stack: ExitStack, csv_path: Path, fieldnames: list[str]) -> tuple[object, csv.DictWriter]:
+    csv_file = stack.enter_context(csv_path.open("w", newline="", encoding="utf-8"))
+    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+    writer.writeheader()
+    csv_file.flush()
+    return csv_file, writer
+
+
 def read_one_frame(data_ser: serial.Serial, rx_buffer: bytearray) -> bytes | None:
     chunk = data_ser.read(4096)
     if chunk:
@@ -160,7 +256,14 @@ def parse_tlvs(frame: bytes) -> tuple[dict[str, int], list[tuple[int, bytes]]]:
     return header, tlvs
 
 
-def monitor_data(data_ser: serial.Serial) -> None:
+def monitor_data(
+    data_ser: serial.Serial,
+    raw_file,
+    heart_rate_writer: csv.DictWriter,
+    heart_rate_csv,
+    heart_rate_debug_writer: csv.DictWriter,
+    heart_rate_debug_csv,
+) -> None:
     rx_buffer = bytearray()
     print(f"[DATA] Listening on {data_ser.port} @ {data_ser.baudrate} ...")
 
@@ -170,30 +273,72 @@ def monitor_data(data_ser: serial.Serial) -> None:
             continue
 
         header, tlvs = parse_tlvs(frame)
+        raw_file.write(frame)
+        raw_file.flush()
         heart_rate_found = False
+        heart_rate_debug_found = False
 
         for tlv_type, payload in tlvs:
-            if tlv_type != MMWDEMO_OUTPUT_MSG_HEART_RATE:
-                continue
+            if tlv_type == MMWDEMO_OUTPUT_MSG_HEART_RATE:
+                if len(payload) != struct.calcsize("<5f4H"):
+                    print(
+                        f"[DATA] Frame {header['frame_number']} subFrame {header['subframe_number']} "
+                        f"heart-rate TLV length mismatch: {len(payload)}"
+                    )
+                    continue
 
-            if len(payload) != struct.calcsize("<5f4H"):
-                print(
-                    f"[DATA] Frame {header['frame_number']} subFrame {header['subframe_number']} "
-                    f"heart-rate TLV length mismatch: {len(payload)}"
+                heart = parse_heart_rate_payload(payload)
+                heart_rate_found = True
+                heart_rate_writer.writerow(
+                    {
+                        "frame_number": header["frame_number"],
+                        "subframe_number": header["subframe_number"],
+                        "time_cpu_cycles": header["time_cpu_cycles"],
+                        **heart,
+                    }
                 )
-                continue
+                heart_rate_csv.flush()
+                print(
+                    f"[HR] frame={header['frame_number']} subFrame={header['subframe_number']} "
+                    f"valid={heart['valid']} bpm={heart['heart_rate_bpm']:.2f} "
+                    f"hz={heart['heart_rate_hz']:.3f} conf={heart['confidence']:.3f} "
+                    f"gate={heart['selected_range_bin']} range={heart['range_meters']:.3f} m "
+                    f"fs={heart['sample_rate_hz']:.3f} Hz win={heart['window_length']}"
+                )
+            elif tlv_type == MMWDEMO_OUTPUT_MSG_HEART_RATE_DEBUG:
+                if len(payload) != struct.calcsize("<16f10H"):
+                    print(
+                        f"[DATA] Frame {header['frame_number']} subFrame {header['subframe_number']} "
+                        f"heart-rate debug TLV length mismatch: {len(payload)}"
+                    )
+                    continue
 
-            heart = parse_heart_rate_payload(payload)
-            heart_rate_found = True
-            print(
-                f"[HR] frame={header['frame_number']} subFrame={header['subframe_number']} "
-                f"valid={heart['valid']} bpm={heart['heart_rate_bpm']:.2f} "
-                f"hz={heart['heart_rate_hz']:.3f} conf={heart['confidence']:.3f} "
-                f"gate={heart['selected_range_bin']} range={heart['range_meters']:.3f} m "
-                f"fs={heart['sample_rate_hz']:.3f} Hz win={heart['window_length']}"
-            )
+                debug = parse_heart_rate_debug_payload(payload)
+                heart_rate_debug_found = True
+                heart_rate_debug_writer.writerow(
+                    {
+                        "frame_number": header["frame_number"],
+                        "subframe_number": header["subframe_number"],
+                        "time_cpu_cycles": header["time_cpu_cycles"],
+                        **debug,
+                    }
+                )
+                heart_rate_debug_csv.flush()
+                print(
+                    f"[DBG] frame={header['frame_number']} subFrame={header['subframe_number']} "
+                    f"bestBin={debug['best_range_bin']} selBin={debug['selected_range_bin']} "
+                    f"prevBin={debug['prev_selected_range_bin']} gateChanged={debug['gate_changed']} "
+                    f"bestScore={debug['best_score']:.3f} selScore={debug['selected_score']:.3f} "
+                    f"L={debug['left_neighbor_score']:.3f} R={debug['right_neighbor_score']:.3f} "
+                    f"guide={debug['guide_freq']:.3f} coarse={debug['coarse_freq']:.3f} fine={debug['fine_freq']:.3f} "
+                    f"guidePk={debug['guide_peak_mag']:.3f} coarsePk={debug['coarse_peak_mag']:.3f} finePk={debug['fine_peak_mag']:.3f} "
+                    f"sigP={debug['signal_power']:.3f} sampP={debug['sample_power_mean']:.3f} "
+                    f"thr={debug['power_threshold']:.3f} alpha={debug['alpha']:.5f} "
+                    f"range={debug['selected_range_meters']:.3f} m filled={debug['is_filled']} "
+                    f"samples={debug['sample_count']}/{debug['window_length']} valid={debug['valid']}"
+                )
 
-        if not heart_rate_found:
+        if (not heart_rate_found) and (not heart_rate_debug_found):
             print(
                 f"[DATA] frame={header['frame_number']} subFrame={header['subframe_number']} "
                 f"numTLVs={header['num_tlvs']} no heart-rate TLV"
@@ -237,6 +382,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=0.08,
         help="Delay between cfg commands in seconds, default: 0.08",
     )
+    parser.add_argument(
+        "--output-dir",
+        default="captures",
+        help="Directory used to store raw UART data and parsed CSV logs, default: captures",
+    )
     return parser
 
 
@@ -255,14 +405,38 @@ def main() -> int:
         return 1
 
     try:
-        with open_serial(args.cfg_port, args.cfg_baud, timeout=0.2) as cfg_ser:
+        output_dir = Path(args.output_dir).resolve()
+        capture_dir = create_capture_dir(output_dir, cfg_path)
+        print(f"[SAVE] Capture directory: {capture_dir}")
+
+        with ExitStack() as stack:
+            raw_file = stack.enter_context((capture_dir / "uart_raw.bin").open("ab"))
+            heart_rate_csv, heart_rate_writer = open_csv_writer(
+                stack,
+                capture_dir / "heart_rate.csv",
+                HEART_RATE_FIELDS,
+            )
+            heart_rate_debug_csv, heart_rate_debug_writer = open_csv_writer(
+                stack,
+                capture_dir / "heart_rate_debug.csv",
+                HEART_RATE_DEBUG_FIELDS,
+            )
+
+            cfg_ser = stack.enter_context(open_serial(args.cfg_port, args.cfg_baud, timeout=0.2))
             send_cfg(cfg_ser, cfg_lines, args.cmd_delay)
 
-        time.sleep(0.5)
+            time.sleep(0.5)
 
-        with open_serial(args.data_port, args.data_baud, timeout=0.1) as data_ser:
+            data_ser = stack.enter_context(open_serial(args.data_port, args.data_baud, timeout=0.1))
             data_ser.reset_input_buffer()
-            monitor_data(data_ser)
+            monitor_data(
+                data_ser,
+                raw_file,
+                heart_rate_writer,
+                heart_rate_csv,
+                heart_rate_debug_writer,
+                heart_rate_debug_csv,
+            )
     except serial.SerialException as exc:
         print(f"Serial error: {exc}", file=sys.stderr)
         return 2

@@ -1,0 +1,1 @@
+frame_number,subframe_number,time_cpu_cycles,heart_rate_bpm,heart_rate_hz,confidence,sample_rate_hz,range_meters,selected_range_bin,window_length,valid

@@ -37,6 +37,36 @@ typedef struct HeartRateOutput_t
     uint16_t reserved0;
 } HeartRateOutput;
 
+typedef struct HeartRateDebugOutput_t
+{
+    float    samplePowerMean;
+    float    powerThreshold;
+    float    bestScore;
+    float    selectedScore;
+    float    leftNeighborScore;
+    float    rightNeighborScore;
+    float    guideFreq;
+    float    coarseFreq;
+    float    fineFreq;
+    float    guidePeakMag;
+    float    coarsePeakMag;
+    float    finePeakMag;
+    float    signalPower;
+    float    alpha;
+    float    rangeStep;
+    float    selectedRangeMeters;
+    uint16_t bestRangeBin;
+    uint16_t selectedRangeBin;
+    uint16_t prevSelectedRangeBin;
+    uint16_t windowLength;
+    uint16_t sampleCount;
+    uint16_t isFilled;
+    uint16_t valid;
+    uint16_t gateChanged;
+    uint16_t searchMaxBin;
+    uint16_t reserved0;
+} HeartRateDebugOutput;
+
 #ifdef __cplusplus
 }
 #endif

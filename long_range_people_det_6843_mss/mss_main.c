@@ -678,6 +678,7 @@ typedef struct HeartRateMssCtx_t
     float    rangeStep;
     uint32_t prevFrameStartTimeStamp;
     HeartRateOutput output;
+    HeartRateDebugOutput debugOutput;
 } HeartRateMssCtx;
 
 static HeartRateMssCtx gHeartRateCtx[RL_MAX_SUBFRAMES];
@@ -800,6 +801,11 @@ static void HeartRate_resetCtx(HeartRateMssCtx *ctx)
     ctx->output.selectedRangeBin = 0xFFFFU;
     ctx->output.sampleRateHz     = sampleRateHz;
     ctx->output.windowLength     = windowLength;
+    ctx->debugOutput.selectedRangeBin     = 0xFFFFU;
+    ctx->debugOutput.prevSelectedRangeBin = 0xFFFFU;
+    ctx->debugOutput.bestRangeBin         = 0xFFFFU;
+    ctx->debugOutput.windowLength         = windowLength;
+    ctx->debugOutput.rangeStep            = rangeStep;
 }
 
 static void HeartRate_computeBandpassBiquad(float fs,
@@ -1157,6 +1163,7 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
     float    guidePeakMag;
     float    coarsePeakMag;
     float    finePeakMag;
+    float    guideFreq;
     float    coarseFreq;
     float    fineFreq;
     float    coarseDf;
@@ -1168,6 +1175,16 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
     if ((ctx->sampleCount < length) || (length == 0U) || (ctx->sampleRateHz <= 0.0f))
     {
         ctx->output.valid = 0U;
+        ctx->debugOutput.valid = 0U;
+        ctx->debugOutput.samplePowerMean = 0.0f;
+        ctx->debugOutput.powerThreshold  = 0.0f;
+        ctx->debugOutput.guideFreq       = 0.0f;
+        ctx->debugOutput.coarseFreq      = 0.0f;
+        ctx->debugOutput.fineFreq        = 0.0f;
+        ctx->debugOutput.guidePeakMag    = 0.0f;
+        ctx->debugOutput.coarsePeakMag   = 0.0f;
+        ctx->debugOutput.finePeakMag     = 0.0f;
+        ctx->debugOutput.signalPower     = 0.0f;
         return;
     }
 
@@ -1260,6 +1277,7 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
                                              2.0f,
                                              length,
                                              &guidePeakMag);
+    guideFreq = coarseFreq;
 
     HeartRate_runVME(gHeartRateScratch.phaseRaw,
                      length,
@@ -1308,6 +1326,16 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
     ctx->output.confidence   = finePeakMag / (signalPower + 1.0e-3f);
     ctx->output.valid        = (uint16_t)((ctx->output.heartRateBpm >= HEART_RATE_MIN_BPM) &&
                                    (ctx->output.heartRateBpm <= HEART_RATE_MAX_BPM));
+    ctx->debugOutput.samplePowerMean = samplePowerMean;
+    ctx->debugOutput.powerThreshold  = powerThreshold;
+    ctx->debugOutput.guideFreq       = guideFreq;
+    ctx->debugOutput.coarseFreq      = coarseFreq;
+    ctx->debugOutput.fineFreq        = fineFreq;
+    ctx->debugOutput.guidePeakMag    = guidePeakMag;
+    ctx->debugOutput.coarsePeakMag   = coarsePeakMag;
+    ctx->debugOutput.finePeakMag     = finePeakMag;
+    ctx->debugOutput.signalPower     = signalPower;
+    ctx->debugOutput.valid           = ctx->output.valid;
 }
 
 static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
@@ -1317,6 +1345,7 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
     uint16_t numRangeBins;
     uint16_t searchMaxBin;
     uint16_t bestBin;
+    uint16_t prevSelectedRangeBin;
     uint32_t deltaCycles;
     float    alpha;
     float    reVal;
@@ -1365,6 +1394,7 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
     bestBin    = HEART_RATE_RANGE_BIN_SKIP;
     selectedRe = 0.0f;
     selectedIm = 0.0f;
+    prevSelectedRangeBin = ctx->selectedRangeBin;
 
     searchMaxBin = numRangeBins;
     if ((ctx->rangeStep > 0.0f) &&
@@ -1449,6 +1479,47 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
     {
         ctx->output.rangeMeters = 0.0f;
     }
+
+    ctx->debugOutput.alpha               = alpha;
+    ctx->debugOutput.bestScore           = bestScore;
+    ctx->debugOutput.selectedRangeBin    = ctx->selectedRangeBin;
+    ctx->debugOutput.prevSelectedRangeBin = prevSelectedRangeBin;
+    ctx->debugOutput.windowLength        = ctx->windowLength;
+    ctx->debugOutput.sampleCount         = ctx->sampleCount;
+    ctx->debugOutput.isFilled            = ctx->isFilled;
+    ctx->debugOutput.searchMaxBin        = searchMaxBin;
+    ctx->debugOutput.rangeStep           = ctx->rangeStep;
+    ctx->debugOutput.gateChanged         = (uint16_t)(prevSelectedRangeBin != ctx->selectedRangeBin);
+
+    if (ctx->selectedRangeBin < numRangeBins)
+    {
+        ctx->debugOutput.selectedScore       = ctx->energyAccum[ctx->selectedRangeBin];
+        ctx->debugOutput.selectedRangeMeters = ((float)ctx->selectedRangeBin) * ctx->rangeStep;
+        if (ctx->selectedRangeBin > 0U)
+        {
+            ctx->debugOutput.leftNeighborScore = ctx->energyAccum[ctx->selectedRangeBin - 1U];
+        }
+        else
+        {
+            ctx->debugOutput.leftNeighborScore = 0.0f;
+        }
+        if ((ctx->selectedRangeBin + 1U) < numRangeBins)
+        {
+            ctx->debugOutput.rightNeighborScore = ctx->energyAccum[ctx->selectedRangeBin + 1U];
+        }
+        else
+        {
+            ctx->debugOutput.rightNeighborScore = 0.0f;
+        }
+    }
+    else
+    {
+        ctx->debugOutput.selectedScore       = 0.0f;
+        ctx->debugOutput.selectedRangeMeters = 0.0f;
+        ctx->debugOutput.leftNeighborScore   = 0.0f;
+        ctx->debugOutput.rightNeighborScore  = 0.0f;
+    }
+    ctx->debugOutput.bestRangeBin = bestBin;
 
     if (ctx->isFilled == 1U)
     {
@@ -2402,7 +2473,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
     uint32_t                  tlvIdx = 0;
     uint32_t                  numPaddingBytes;
     uint8_t                   padding[MMWDEMO_OUTPUT_MSG_SEGMENT_LEN];
-    MmwDemo_output_message_tl tl[MMWDEMO_OUTPUT_MSG_MAX];
+    MmwDemo_output_message_tl tl[10];
 
     DPIF_PointCloudCartesian  *objOut;
     DPIF_PointCloudSpherical  *objOutSph;
@@ -2411,6 +2482,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
     trackerProc_Target        *tList;
     trackerProc_TargetIndex   *tIndex;
     HeartRateOutput            heartRateOutput;
+    HeartRateDebugOutput       heartRateDebugOutput;
     int32_t                    errCode;
 
     MmwDemo_output_message_header outputMessage;
@@ -2487,6 +2559,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
     outputMessage.numTLVs        = 0;
     outputMessage.numDetectedObj = result->numObjOut;
     heartRateOutput              = gHeartRateCtx[result->subFrameIdx].output;
+    heartRateDebugOutput         = gHeartRateCtx[result->subFrameIdx].debugOutput;
 
     packetLen = sizeof(MmwDemo_output_message_header);
     if (result->numObjOut > 250)
@@ -2533,6 +2606,12 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
 
     tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_HEART_RATE;
     tl[tlvIdx].length = sizeof(HeartRateOutput);
+    packetLen += sizeof(MmwDemo_output_message_tl) + tl[tlvIdx].length;
+    outputMessage.numTLVs += 1;
+    tlvIdx++;
+
+    tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_HEART_RATE_DEBUG;
+    tl[tlvIdx].length = sizeof(HeartRateDebugOutput);
     packetLen += sizeof(MmwDemo_output_message_tl) + tl[tlvIdx].length;
     outputMessage.numTLVs += 1;
     tlvIdx++;
@@ -2608,6 +2687,19 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
     UART_writePolling(uartHandle,
                       (uint8_t *)&heartRateOutput,
                       sizeof(HeartRateOutput));
+
+    tlvIdx++;
+
+    Task_sleep(1);
+
+    UART_writePolling(uartHandle,
+                      (uint8_t *)&tl[tlvIdx],
+                      sizeof(MmwDemo_output_message_tl));
+    Task_sleep(1);
+
+    UART_writePolling(uartHandle,
+                      (uint8_t *)&heartRateDebugOutput,
+                      sizeof(HeartRateDebugOutput));
 
     tlvIdx++;
 

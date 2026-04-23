@@ -1,2 +1,3 @@
-2026/04/22-09:38:58.789 485c Creating DB E:\embedded\ccs_project\work3\.jxbrowser.userdata\Default\shared_proto_db since it was missing.
-2026/04/22-09:38:58.794 485c Reusing MANIFEST E:\embedded\ccs_project\work3\.jxbrowser.userdata\Default\shared_proto_db/MANIFEST-000001
+2026/04/22-19:51:21.902 1e48 Reusing MANIFEST E:\embedded\ccs_project\work3\.jxbrowser.userdata\Default\shared_proto_db/MANIFEST-000001
+2026/04/22-19:51:21.903 1e48 Recovering log #3
+2026/04/22-19:51:21.903 1e48 Reusing old log E:\embedded\ccs_project\work3\.jxbrowser.userdata\Default\shared_proto_db/000003.log 
