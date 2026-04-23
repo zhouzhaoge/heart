@@ -644,9 +644,15 @@
 #define HEART_RATE_MAX_WINDOW_SAMPLES    256U
 #define HEART_RATE_RANGE_BIN_SKIP        3U
 #define HEART_RATE_BANDPASS_ORDER        3U
-#define HEART_RATE_GUIDE_FREQ_MIN_HZ     0.8f
+#define HEART_RATE_GUIDE_FREQ_MIN_HZ     1.0f
+#define HEART_RATE_GUIDE_FILTER_MAX_HZ   2.0f
 #define HEART_RATE_GUIDE_FREQ_MAX_HZ     3.0f
 #define HEART_RATE_FINE_SEARCH_HALF_BINS 2U
+#define HEART_RATE_VME_ALPHA             10.0f
+#define HEART_RATE_TARGET_SAMPLE_RATE_HZ 10.0f
+#define HEART_RATE_TRACK_HALF_SPAN_HZ    0.20f
+#define HEART_RATE_TRACK_KEEP_RATIO      0.85f
+#define HEART_RATE_UART_HR_ONLY          1U
 /* DSS frameStartTimeStamp is reported in C674x cycles on xWR6843. */
 #define HEART_RATE_DSS_TIMESTAMP_HZ      600000000.0f
 
@@ -671,12 +677,19 @@ typedef struct HeartRateMssCtx_t
     uint16_t windowLength;
     uint16_t sampleCount;
     uint16_t nextIndex;
+    uint16_t slowTimeAccumCount;
     uint16_t selectedRangeBin;
     uint8_t  isFilled;
     float    framePeriodSec;
+    float    frameRateHz;
     float    sampleRateHz;
+    float    targetSampleRateHz;
     float    rangeStep;
+    float    slowTimeAccumRe;
+    float    slowTimeAccumIm;
+    float    trackedHeartRateHz;
     uint32_t prevFrameStartTimeStamp;
+    uint16_t trackedHeartRateValid;
     HeartRateOutput output;
     HeartRateDebugOutput debugOutput;
 } HeartRateMssCtx;
@@ -779,13 +792,17 @@ static float HeartRate_median3(float a, float b, float c)
 static void HeartRate_resetCtx(HeartRateMssCtx *ctx)
 {
     float framePeriodSec;
+    float frameRateHz;
     float sampleRateHz;
+    float targetSampleRateHz;
     float rangeStep;
     uint16_t windowLength;
     uint16_t numRangeBins;
 
     framePeriodSec = ctx->framePeriodSec;
+    frameRateHz    = ctx->frameRateHz;
     sampleRateHz   = ctx->sampleRateHz;
+    targetSampleRateHz = ctx->targetSampleRateHz;
     rangeStep      = ctx->rangeStep;
     windowLength   = ctx->windowLength;
     numRangeBins   = ctx->numRangeBins;
@@ -793,7 +810,9 @@ static void HeartRate_resetCtx(HeartRateMssCtx *ctx)
     memset((void *)ctx, 0, sizeof(HeartRateMssCtx));
 
     ctx->framePeriodSec   = framePeriodSec;
+    ctx->frameRateHz      = frameRateHz;
     ctx->sampleRateHz     = sampleRateHz;
+    ctx->targetSampleRateHz = targetSampleRateHz;
     ctx->rangeStep        = rangeStep;
     ctx->windowLength     = windowLength;
     ctx->numRangeBins     = numRangeBins;
@@ -806,6 +825,27 @@ static void HeartRate_resetCtx(HeartRateMssCtx *ctx)
     ctx->debugOutput.bestRangeBin         = 0xFFFFU;
     ctx->debugOutput.windowLength         = windowLength;
     ctx->debugOutput.rangeStep            = rangeStep;
+}
+
+static void HeartRate_pushSlowTimeSample(HeartRateMssCtx *ctx, float sampleRe, float sampleIm)
+{
+    if (ctx->windowLength == 0U)
+    {
+        return;
+    }
+
+    ctx->slowTimeRe[ctx->nextIndex] = sampleRe;
+    ctx->slowTimeIm[ctx->nextIndex] = sampleIm;
+    ctx->nextIndex = (uint16_t)((ctx->nextIndex + 1U) % ctx->windowLength);
+
+    if (ctx->sampleCount < ctx->windowLength)
+    {
+        ctx->sampleCount++;
+    }
+    if (ctx->sampleCount >= ctx->windowLength)
+    {
+        ctx->isFilled = 1U;
+    }
 }
 
 static void HeartRate_computeBandpassBiquad(float fs,
@@ -1026,7 +1066,7 @@ static float HeartRate_runVME(const float *phaseRaw,
     float    alpha;
     const float twoPi = 6.28318530718f;
 
-    alpha = 10.0f;
+    alpha = HEART_RATE_VME_ALPHA;
 
     gHeartRateScratch.psi[0] = 0.0f;
     for (sampleIdx = 1U; sampleIdx < length; sampleIdx++)
@@ -1166,6 +1206,10 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
     float    guideFreq;
     float    coarseFreq;
     float    fineFreq;
+    float    trackedFreq;
+    float    trackedPeakMag;
+    float    trackedStart;
+    float    trackedEnd;
     float    coarseDf;
     float    fineStart;
     float    fineEnd;
@@ -1254,7 +1298,7 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
 
     HeartRate_computeBandpassBiquad(ctx->sampleRateHz,
                                     HEART_RATE_GUIDE_FREQ_MIN_HZ,
-                                    2.0f,
+                                    HEART_RATE_GUIDE_FILTER_MAX_HZ,
                                     &b0,
                                     &b1,
                                     &b2,
@@ -1274,7 +1318,7 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
                                              length,
                                              ctx->sampleRateHz,
                                              HEART_RATE_GUIDE_FREQ_MIN_HZ,
-                                             2.0f,
+                                             HEART_RATE_GUIDE_FILTER_MAX_HZ,
                                              length,
                                              &guidePeakMag);
     guideFreq = coarseFreq;
@@ -1314,6 +1358,35 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
                                            length,
                                            &finePeakMag);
 
+    if (ctx->trackedHeartRateValid != 0U)
+    {
+        trackedStart = ctx->trackedHeartRateHz - HEART_RATE_TRACK_HALF_SPAN_HZ;
+        trackedEnd   = ctx->trackedHeartRateHz + HEART_RATE_TRACK_HALF_SPAN_HZ;
+        if (trackedStart < HEART_RATE_GUIDE_FREQ_MIN_HZ)
+        {
+            trackedStart = HEART_RATE_GUIDE_FREQ_MIN_HZ;
+        }
+        if (trackedEnd > HEART_RATE_GUIDE_FREQ_MAX_HZ)
+        {
+            trackedEnd = HEART_RATE_GUIDE_FREQ_MAX_HZ;
+        }
+        if (trackedEnd > trackedStart)
+        {
+            trackedFreq = HeartRate_findPeakFrequency(gHeartRateScratch.heartSignal,
+                                                      length,
+                                                      ctx->sampleRateHz,
+                                                      trackedStart,
+                                                      trackedEnd,
+                                                      (uint16_t)(2U * length),
+                                                      &trackedPeakMag);
+            if (trackedPeakMag >= (HEART_RATE_TRACK_KEEP_RATIO * finePeakMag))
+            {
+                fineFreq    = trackedFreq;
+                finePeakMag = trackedPeakMag;
+            }
+        }
+    }
+
     signalPower = 0.0f;
     for (sampleIdx = 0U; sampleIdx < length; sampleIdx++)
     {
@@ -1326,6 +1399,11 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
     ctx->output.confidence   = finePeakMag / (signalPower + 1.0e-3f);
     ctx->output.valid        = (uint16_t)((ctx->output.heartRateBpm >= HEART_RATE_MIN_BPM) &&
                                    (ctx->output.heartRateBpm <= HEART_RATE_MAX_BPM));
+    if (ctx->output.valid != 0U)
+    {
+        ctx->trackedHeartRateHz    = fineFreq;
+        ctx->trackedHeartRateValid = 1U;
+    }
     ctx->debugOutput.samplePowerMean = samplePowerMean;
     ctx->debugOutput.powerThreshold  = powerThreshold;
     ctx->debugOutput.guideFreq       = guideFreq;
@@ -1346,8 +1424,12 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
     uint16_t searchMaxBin;
     uint16_t bestBin;
     uint16_t prevSelectedRangeBin;
+    uint16_t slowTimeSamplePushed;
     uint32_t deltaCycles;
     float    alpha;
+    float    frameDtSec;
+    float    windowTimeSec;
+    float    frameSamplesPerHeartSample;
     float    reVal;
     float    imVal;
     float    mtiRe;
@@ -1380,20 +1462,54 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
     deltaCycles = heartInfo->frameStartTimeStamp - ctx->prevFrameStartTimeStamp;
     if ((ctx->prevFrameStartTimeStamp != 0U) && (deltaCycles != 0U))
     {
-        ctx->sampleRateHz = HEART_RATE_DSS_TIMESTAMP_HZ / (float)deltaCycles;
+        frameDtSec        = (float)deltaCycles / HEART_RATE_DSS_TIMESTAMP_HZ;
+        ctx->frameRateHz  = 1.0f / frameDtSec;
+    }
+    else
+    {
+        frameDtSec = ctx->framePeriodSec;
     }
     ctx->prevFrameStartTimeStamp = heartInfo->frameStartTimeStamp;
 
-    if ((ctx->sampleRateHz <= 0.0f) && (ctx->framePeriodSec > 0.0f))
+    if ((ctx->frameRateHz <= 0.0f) && (ctx->framePeriodSec > 0.0f))
     {
-        ctx->sampleRateHz = 1.0f / ctx->framePeriodSec;
+        ctx->frameRateHz = 1.0f / ctx->framePeriodSec;
+    }
+    if ((ctx->sampleRateHz <= 0.0f) && (ctx->frameRateHz > 0.0f))
+    {
+        ctx->sampleRateHz = ctx->frameRateHz;
+    }
+    if ((ctx->targetSampleRateHz > 0.0f) &&
+        (ctx->frameRateHz > ctx->targetSampleRateHz))
+    {
+        ctx->sampleRateHz = ctx->targetSampleRateHz;
     }
 
-    alpha      = 1.0f / (float)ctx->windowLength;
+    if ((ctx->sampleRateHz > 0.0f) && (ctx->windowLength > 0U))
+    {
+        windowTimeSec = (float)ctx->windowLength / ctx->sampleRateHz;
+    }
+    else
+    {
+        windowTimeSec = 0.0f;
+    }
+    if ((windowTimeSec > 0.0f) && (frameDtSec > 0.0f))
+    {
+        alpha = frameDtSec / windowTimeSec;
+    }
+    else
+    {
+        alpha = 1.0f / (float)ctx->windowLength;
+    }
+    if (alpha > 1.0f)
+    {
+        alpha = 1.0f;
+    }
     bestScore  = 0.0f;
     bestBin    = HEART_RATE_RANGE_BIN_SKIP;
     selectedRe = 0.0f;
     selectedIm = 0.0f;
+    slowTimeSamplePushed = 0U;
     prevSelectedRangeBin = ctx->selectedRangeBin;
 
     searchMaxBin = numRangeBins;
@@ -1448,23 +1564,34 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
         ctx->selectedRangeBin = bestBin;
         ctx->sampleCount      = 0U;
         ctx->nextIndex        = 0U;
+        ctx->slowTimeAccumCount = 0U;
         ctx->isFilled         = 0U;
+        ctx->slowTimeAccumRe  = 0.0f;
+        ctx->slowTimeAccumIm  = 0.0f;
         ctx->output.valid     = 0U;
+        ctx->trackedHeartRateValid = 0U;
     }
 
     if (ctx->selectedRangeBin < numRangeBins)
     {
-        ctx->slowTimeRe[ctx->nextIndex] = selectedRe;
-        ctx->slowTimeIm[ctx->nextIndex] = selectedIm;
-        ctx->nextIndex = (uint16_t)((ctx->nextIndex + 1U) % ctx->windowLength);
-
-        if (ctx->sampleCount < ctx->windowLength)
+        frameSamplesPerHeartSample = 1.0f;
+        if ((ctx->sampleRateHz > 0.0f) && (ctx->frameRateHz > ctx->sampleRateHz))
         {
-            ctx->sampleCount++;
+            frameSamplesPerHeartSample = ctx->frameRateHz / ctx->sampleRateHz;
         }
-        if (ctx->sampleCount >= ctx->windowLength)
+        ctx->slowTimeAccumRe += selectedRe;
+        ctx->slowTimeAccumIm += selectedIm;
+        ctx->slowTimeAccumCount++;
+        if ((ctx->slowTimeAccumCount >= (uint16_t)(frameSamplesPerHeartSample + 0.5f)) ||
+            (frameSamplesPerHeartSample <= 1.0f))
         {
-            ctx->isFilled = 1U;
+            HeartRate_pushSlowTimeSample(ctx,
+                                         ctx->slowTimeAccumRe / (float)ctx->slowTimeAccumCount,
+                                         ctx->slowTimeAccumIm / (float)ctx->slowTimeAccumCount);
+            slowTimeSamplePushed = 1U;
+            ctx->slowTimeAccumCount = 0U;
+            ctx->slowTimeAccumRe    = 0.0f;
+            ctx->slowTimeAccumIm    = 0.0f;
         }
     }
 
@@ -1521,7 +1648,7 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
     }
     ctx->debugOutput.bestRangeBin = bestBin;
 
-    if (ctx->isFilled == 1U)
+    if ((ctx->isFilled == 1U) && (slowTimeSamplePushed != 0U))
     {
         HeartRate_estimateForWindow(ctx);
     }
@@ -2475,7 +2602,6 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
     uint8_t                   padding[MMWDEMO_OUTPUT_MSG_SEGMENT_LEN];
     MmwDemo_output_message_tl tl[10];
 
-    DPIF_PointCloudCartesian  *objOut;
     DPIF_PointCloudSpherical  *objOutSph;
     DPIF_PointCloudSideInfo   *objOutSideInfo;
     DPC_ObjectDetection_Stats *stats;
@@ -2512,13 +2638,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
                                                                   &errCode);
         DebugP_assert((uint32_t)stats != SOC_TRANSLATEADDR_INVALID);
 
-#ifdef TRACKERPROC_ON_DSP
-        objOut = (DPIF_PointCloudCartesian *)SOC_translateAddress((uint32_t)result->objOut,
-                                                                  SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
-                                                                  &errCode);
-        DebugP_assert((uint32_t)objOut != SOC_TRANSLATEADDR_INVALID);
-
-
+#if (HEART_RATE_UART_HR_ONLY == 0U) && defined(TRACKERPROC_ON_DSP)
         objOutSph = (DPIF_PointCloudSpherical *)SOC_translateAddress((uint32_t)result->objOutSph,
                                                                      SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
                                                                      &errCode);
@@ -2540,12 +2660,16 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
                                                                  SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
                                                                  &errCode);
         DebugP_assert((uint32_t)tIndex != SOC_TRANSLATEADDR_INVALID);
-#else
-        objOut         = (DPIF_PointCloudCartesian *)objOutCollect;
+#elif (HEART_RATE_UART_HR_ONLY == 0U)
         objOutSph      = (DPIF_PointCloudSpherical *)objOutSphCollect;
         objOutSideInfo = (DPIF_PointCloudSideInfo *)objOutSideInfoCollect;
         tList          = (trackerProc_Target *)(result->tList);
         tIndex         = (trackerProc_TargetIndex *)(result->tIndex);
+#else
+        objOutSph      = NULL;
+        objOutSideInfo = NULL;
+        tList          = NULL;
+        tIndex         = NULL;
 #endif
     }
 
@@ -2557,7 +2681,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
 
     outputMessage.timeCpuCycles  = Cycleprofiler_getTimeStamp();
     outputMessage.numTLVs        = 0;
-    outputMessage.numDetectedObj = result->numObjOut;
+    outputMessage.numDetectedObj = (HEART_RATE_UART_HR_ONLY == 0U) ? result->numObjOut : 0U;
     heartRateOutput              = gHeartRateCtx[result->subFrameIdx].output;
     heartRateDebugOutput         = gHeartRateCtx[result->subFrameIdx].debugOutput;
 
@@ -2567,7 +2691,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
         result->numObjOut = 250;
     }
     /* Point cloud and side info */
-    if (result->numObjOut > 0)
+    if ((HEART_RATE_UART_HR_ONLY == 0U) && (result->numObjOut > 0))
     {
         /* Point cloud */
         tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_SPHERICAL_POINTS;
@@ -2584,7 +2708,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
         tlvIdx++;
     }
 
-    if (result->numTargets)
+    if ((HEART_RATE_UART_HR_ONLY == 0U) && result->numTargets)
     {
 
         tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_TRACKERPROC_3D_TARGET_LIST;
@@ -2594,7 +2718,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
         tlvIdx++;
     }
 
-    if (result->numIndices)
+    if ((HEART_RATE_UART_HR_ONLY == 0U) && result->numIndices)
     {
 
         tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_TRACKERPROC_TARGET_INDEX;
@@ -2625,7 +2749,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
 
     tlvIdx = 0;
     /* Send detected objects and side info*/
-    if (result->numObjOut > 0)
+    if ((HEART_RATE_UART_HR_ONLY == 0U) && (result->numObjOut > 0))
     {
         UART_writePolling(uartHandle,
                           (uint8_t *)&tl[tlvIdx],
@@ -2649,7 +2773,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
         Task_sleep(1);
     }
 
-    if (result->numTargets > 0)
+    if ((HEART_RATE_UART_HR_ONLY == 0U) && (result->numTargets > 0))
     {
         /* If any targets tracked, send send target List TLV  */
         UART_writePolling(uartHandle,
@@ -2664,7 +2788,7 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
         Task_sleep(1);
     }
 
-    if (result->numIndices > 0)
+    if ((HEART_RATE_UART_HR_ONLY == 0U) && (result->numIndices > 0))
     {
         /* If exists, send target Index TLV  */
         UART_writePolling(uartHandle,
@@ -3206,11 +3330,18 @@ static int32_t MmwDemo_dataPathConfig(void)
         heartCtx->framePeriodSec = RFparserOutParams.framePeriod * 0.001f;
         if (heartCtx->framePeriodSec > 0.0f)
         {
-            heartCtx->sampleRateHz = 1.0f / heartCtx->framePeriodSec;
+            heartCtx->frameRateHz = 1.0f / heartCtx->framePeriodSec;
         }
         else
         {
-            heartCtx->sampleRateHz = 0.0f;
+            heartCtx->frameRateHz = 0.0f;
+        }
+        heartCtx->targetSampleRateHz = HEART_RATE_TARGET_SAMPLE_RATE_HZ;
+        heartCtx->sampleRateHz       = heartCtx->frameRateHz;
+        if ((heartCtx->targetSampleRateHz > 0.0f) &&
+            (heartCtx->frameRateHz > heartCtx->targetSampleRateHz))
+        {
+            heartCtx->sampleRateHz = heartCtx->targetSampleRateHz;
         }
         heartCtx->windowLength =
             (uint16_t)((HEART_RATE_DEFAULT_WINDOW_SECONDS * heartCtx->sampleRateHz) + 0.5f);

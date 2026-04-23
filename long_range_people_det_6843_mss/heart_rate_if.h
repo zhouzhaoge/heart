@@ -9,7 +9,7 @@ extern "C"
 #include <stdint.h>
 
 #define HEART_RATE_MAX_RANGE_BINS          (256U)
-#define HEART_RATE_DEFAULT_WINDOW_SECONDS  (10.0f)
+#define HEART_RATE_DEFAULT_WINDOW_SECONDS  (20.0f)
 #define HEART_RATE_MIN_BPM                 (48.0f)
 #define HEART_RATE_MAX_BPM                 (180.0f)
 

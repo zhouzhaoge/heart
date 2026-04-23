@@ -14,6 +14,8 @@ import serial
 MAGIC_WORD = b"\x02\x01\x04\x03\x06\x05\x08\x07"
 HEADER_LEN = 40
 TLV_HEADER_LEN = 8
+MAX_TOTAL_PACKET_LEN = 32768
+MAX_TLVS_PER_FRAME = 32
 
 MMWDEMO_OUTPUT_MSG_HEART_RATE = 1001
 MMWDEMO_OUTPUT_MSG_HEART_RATE_DEBUG = 1002
@@ -122,6 +124,36 @@ def send_cfg(cfg_ser: serial.Serial, cfg_lines: list[str], inter_cmd_delay: floa
         time.sleep(0.05)
 
 
+def drain_data_serial(data_ser: serial.Serial, rx_buffer: bytearray) -> int:
+    chunk = data_ser.read_all()
+    if chunk:
+        rx_buffer.extend(chunk)
+        return len(chunk)
+    return 0
+
+
+def drain_text_serial(ser: serial.Serial, text_buffer: bytearray, prefix: str) -> int:
+    chunk = ser.read_all()
+    if not chunk:
+        return 0
+
+    text_buffer.extend(chunk)
+    last_newline = max(text_buffer.rfind(b"\n"), text_buffer.rfind(b"\r"))
+    if last_newline < 0:
+        return len(chunk)
+
+    completed = bytes(text_buffer[:last_newline + 1])
+    del text_buffer[:last_newline + 1]
+
+    text = completed.decode("utf-8", errors="replace")
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped:
+            print(f"{prefix} {stripped}")
+
+    return len(chunk)
+
+
 def find_magic_word(buffer: bytearray) -> int:
     return buffer.find(MAGIC_WORD)
 
@@ -138,6 +170,19 @@ def parse_frame_header(header: bytes) -> dict[str, int]:
         "num_tlvs": values[10],
         "subframe_number": values[11],
     }
+
+
+def validate_frame_header(header: dict[str, int]) -> str | None:
+    total_packet_len = header["total_packet_len"]
+    if total_packet_len < HEADER_LEN:
+        return f"total_packet_len={total_packet_len} smaller than header"
+    if total_packet_len > MAX_TOTAL_PACKET_LEN:
+        return f"total_packet_len={total_packet_len} exceeds max={MAX_TOTAL_PACKET_LEN}"
+    if (total_packet_len % 32) != 0:
+        return f"total_packet_len={total_packet_len} is not 32-byte aligned"
+    if header["num_tlvs"] > MAX_TLVS_PER_FRAME:
+        return f"num_tlvs={header['num_tlvs']} exceeds max={MAX_TLVS_PER_FRAME}"
+    return None
 
 
 def parse_heart_rate_payload(payload: bytes) -> dict[str, float | int]:
@@ -203,6 +248,33 @@ def open_csv_writer(stack: ExitStack, csv_path: Path, fieldnames: list[str]) -> 
     return csv_file, writer
 
 
+def describe_rx_buffer(rx_buffer: bytearray) -> str:
+    start = find_magic_word(rx_buffer)
+    if start < 0:
+        return f"rxBuf={len(rx_buffer)} magic=missing"
+
+    if len(rx_buffer) < (start + HEADER_LEN):
+        return f"rxBuf={len(rx_buffer)} magicAt={start} state=waiting_header"
+
+    header = parse_frame_header(bytes(rx_buffer[start:start + HEADER_LEN]))
+    header_issue = validate_frame_header(header)
+    if header_issue is not None:
+        return f"rxBuf={len(rx_buffer)} magicAt={start} invalidHeader={header_issue}"
+
+    total_packet_len = header["total_packet_len"]
+    have_len = len(rx_buffer) - start
+    if have_len < total_packet_len:
+        return (
+            f"rxBuf={len(rx_buffer)} magicAt={start} "
+            f"frame={header['frame_number']} total={total_packet_len} have={have_len}"
+        )
+
+    return (
+        f"rxBuf={len(rx_buffer)} magicAt={start} "
+        f"frame={header['frame_number']} total={total_packet_len} have={have_len} state=ready"
+    )
+
+
 def read_one_frame(data_ser: serial.Serial, rx_buffer: bytearray) -> bytes | None:
     chunk = data_ser.read(4096)
     if chunk:
@@ -221,11 +293,13 @@ def read_one_frame(data_ser: serial.Serial, rx_buffer: bytearray) -> bytes | Non
         return None
 
     header = parse_frame_header(bytes(rx_buffer[:HEADER_LEN]))
-    total_packet_len = header["total_packet_len"]
-    if total_packet_len < HEADER_LEN:
-        del rx_buffer[:len(MAGIC_WORD)]
+    header_issue = validate_frame_header(header)
+    if header_issue is not None:
+        print(f"[SYNC] invalid frame header at frame={header['frame_number']}: {header_issue}")
+        del rx_buffer[:1]
         return None
 
+    total_packet_len = header["total_packet_len"]
     if len(rx_buffer) < total_packet_len:
         return None
 
@@ -234,49 +308,74 @@ def read_one_frame(data_ser: serial.Serial, rx_buffer: bytearray) -> bytes | Non
     return frame
 
 
-def parse_tlvs(frame: bytes) -> tuple[dict[str, int], list[tuple[int, bytes]]]:
+def parse_tlvs(frame: bytes) -> tuple[dict[str, int], list[tuple[int, bytes]], str | None]:
     header = parse_frame_header(frame[:HEADER_LEN])
     offset = HEADER_LEN
     tlvs: list[tuple[int, bytes]] = []
+    error: str | None = None
 
     for _ in range(header["num_tlvs"]):
         if offset + TLV_HEADER_LEN > len(frame):
+            error = f"truncated TLV header at offset={offset}"
             break
 
         tlv_type, tlv_length = struct.unpack("<2I", frame[offset:offset + TLV_HEADER_LEN])
         offset += TLV_HEADER_LEN
+        if tlv_length == 0:
+            error = f"zero-length TLV type={tlv_type} at offset={offset - TLV_HEADER_LEN}"
+            break
 
         if offset + tlv_length > len(frame):
+            error = (
+                f"truncated TLV payload type={tlv_type} "
+                f"len={tlv_length} offset={offset}"
+            )
             break
 
         payload = frame[offset:offset + tlv_length]
         offset += tlv_length
         tlvs.append((tlv_type, payload))
 
-    return header, tlvs
+    return header, tlvs, error
 
 
 def monitor_data(
     data_ser: serial.Serial,
+    cfg_ser: serial.Serial,
     raw_file,
     heart_rate_writer: csv.DictWriter,
     heart_rate_csv,
     heart_rate_debug_writer: csv.DictWriter,
     heart_rate_debug_csv,
+    rx_buffer: bytearray,
+    cfg_rx_buffer: bytearray,
+    idle_log_interval: float,
 ) -> None:
-    rx_buffer = bytearray()
+    last_wait_log_time = time.monotonic()
     print(f"[DATA] Listening on {data_ser.port} @ {data_ser.baudrate} ...")
 
     while True:
+        drain_text_serial(cfg_ser, cfg_rx_buffer, "[CLI]")
         frame = read_one_frame(data_ser, rx_buffer)
         if frame is None:
+            now = time.monotonic()
+            if (now - last_wait_log_time) >= idle_log_interval:
+                print(f"[WAIT] {describe_rx_buffer(rx_buffer)}")
+                last_wait_log_time = now
             continue
 
-        header, tlvs = parse_tlvs(frame)
+        last_wait_log_time = time.monotonic()
+        header, tlvs, tlv_error = parse_tlvs(frame)
         raw_file.write(frame)
         raw_file.flush()
         heart_rate_found = False
         heart_rate_debug_found = False
+
+        if tlv_error is not None:
+            print(
+                f"[TLV] frame={header['frame_number']} subFrame={header['subframe_number']} "
+                f"{tlv_error}"
+            )
 
         for tlv_type, payload in tlvs:
             if tlv_type == MMWDEMO_OUTPUT_MSG_HEART_RATE:
@@ -387,6 +486,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default="captures",
         help="Directory used to store raw UART data and parsed CSV logs, default: captures",
     )
+    parser.add_argument(
+        "--idle-log-interval",
+        type=float,
+        default=2.0,
+        help="Seconds between UART wait diagnostics when no full frame is received, default: 2.0",
+    )
     return parser
 
 
@@ -410,6 +515,8 @@ def main() -> int:
         print(f"[SAVE] Capture directory: {capture_dir}")
 
         with ExitStack() as stack:
+            data_rx_buffer = bytearray()
+            cfg_rx_buffer = bytearray()
             raw_file = stack.enter_context((capture_dir / "uart_raw.bin").open("ab"))
             heart_rate_csv, heart_rate_writer = open_csv_writer(
                 stack,
@@ -421,21 +528,28 @@ def main() -> int:
                 capture_dir / "heart_rate_debug.csv",
                 HEART_RATE_DEBUG_FIELDS,
             )
-
-            cfg_ser = stack.enter_context(open_serial(args.cfg_port, args.cfg_baud, timeout=0.2))
-            send_cfg(cfg_ser, cfg_lines, args.cmd_delay)
-
-            time.sleep(0.5)
-
             data_ser = stack.enter_context(open_serial(args.data_port, args.data_baud, timeout=0.1))
             data_ser.reset_input_buffer()
+            data_ser.reset_output_buffer()
+
+            cfg_ser = stack.enter_context(open_serial(args.cfg_port, args.cfg_baud, timeout=0.2))
+            cfg_ser.reset_input_buffer()
+            cfg_ser.reset_output_buffer()
+            print(f"[DATA] Priming {data_ser.port} before sensorStart ...")
+            send_cfg(cfg_ser, cfg_lines, args.cmd_delay)
+            drain_data_serial(data_ser, data_rx_buffer)
+            drain_text_serial(cfg_ser, cfg_rx_buffer, "[CLI]")
             monitor_data(
                 data_ser,
+                cfg_ser,
                 raw_file,
                 heart_rate_writer,
                 heart_rate_csv,
                 heart_rate_debug_writer,
                 heart_rate_debug_csv,
+                data_rx_buffer,
+                cfg_rx_buffer,
+                args.idle_log_interval,
             )
     except serial.SerialException as exc:
         print(f"Serial error: {exc}", file=sys.stderr)
