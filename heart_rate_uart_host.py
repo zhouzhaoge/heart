@@ -47,27 +47,32 @@ HEART_RATE_DEBUG_FIELDS = [
     "power_threshold",
     "best_score",
     "selected_score",
-    "left_neighbor_score",
-    "right_neighbor_score",
     "guide_freq",
+    "vme_guide_freq",
     "coarse_freq",
+    "runner_up_freq",
     "fine_freq",
+    "tracked_freq",
     "guide_peak_mag",
     "coarse_peak_mag",
+    "runner_up_peak_mag",
     "fine_peak_mag",
+    "tracked_peak_mag",
     "signal_power",
-    "alpha",
-    "range_step",
+    "mti_alpha",
+    "vme_alpha",
+    "vme_last_rel_err",
     "selected_range_meters",
     "best_range_bin",
     "selected_range_bin",
-    "prev_selected_range_bin",
     "window_length",
     "sample_count",
     "is_filled",
     "valid",
     "gate_changed",
-    "search_max_bin",
+    "vme_iterations",
+    "track_selected",
+    "step_limited",
 ]
 
 
@@ -202,33 +207,38 @@ def parse_heart_rate_payload(payload: bytes) -> dict[str, float | int]:
 
 
 def parse_heart_rate_debug_payload(payload: bytes) -> dict[str, float | int]:
-    values = struct.unpack("<16f10H", payload)
+    values = struct.unpack("<20f10H", payload)
     return {
         "sample_power_mean": values[0],
         "power_threshold": values[1],
         "best_score": values[2],
         "selected_score": values[3],
-        "left_neighbor_score": values[4],
-        "right_neighbor_score": values[5],
-        "guide_freq": values[6],
-        "coarse_freq": values[7],
+        "guide_freq": values[4],
+        "vme_guide_freq": values[5],
+        "coarse_freq": values[6],
+        "runner_up_freq": values[7],
         "fine_freq": values[8],
-        "guide_peak_mag": values[9],
-        "coarse_peak_mag": values[10],
-        "fine_peak_mag": values[11],
-        "signal_power": values[12],
-        "alpha": values[13],
-        "range_step": values[14],
-        "selected_range_meters": values[15],
-        "best_range_bin": values[16],
-        "selected_range_bin": values[17],
-        "prev_selected_range_bin": values[18],
-        "window_length": values[19],
-        "sample_count": values[20],
-        "is_filled": values[21],
-        "valid": values[22],
-        "gate_changed": values[23],
-        "search_max_bin": values[24],
+        "tracked_freq": values[9],
+        "guide_peak_mag": values[10],
+        "coarse_peak_mag": values[11],
+        "runner_up_peak_mag": values[12],
+        "fine_peak_mag": values[13],
+        "tracked_peak_mag": values[14],
+        "signal_power": values[15],
+        "mti_alpha": values[16],
+        "vme_alpha": values[17],
+        "vme_last_rel_err": values[18],
+        "selected_range_meters": values[19],
+        "best_range_bin": values[20],
+        "selected_range_bin": values[21],
+        "window_length": values[22],
+        "sample_count": values[23],
+        "is_filled": values[24],
+        "valid": values[25],
+        "gate_changed": values[26],
+        "vme_iterations": values[27],
+        "track_selected": values[28],
+        "step_limited": values[29],
     }
 
 
@@ -405,7 +415,7 @@ def monitor_data(
                     f"fs={heart['sample_rate_hz']:.3f} Hz win={heart['window_length']}"
                 )
             elif tlv_type == MMWDEMO_OUTPUT_MSG_HEART_RATE_DEBUG:
-                if len(payload) != struct.calcsize("<16f10H"):
+                if len(payload) != struct.calcsize("<20f10H"):
                     print(
                         f"[DATA] Frame {header['frame_number']} subFrame {header['subframe_number']} "
                         f"heart-rate debug TLV length mismatch: {len(payload)}"
@@ -426,13 +436,19 @@ def monitor_data(
                 print(
                     f"[DBG] frame={header['frame_number']} subFrame={header['subframe_number']} "
                     f"bestBin={debug['best_range_bin']} selBin={debug['selected_range_bin']} "
-                    f"prevBin={debug['prev_selected_range_bin']} gateChanged={debug['gate_changed']} "
-                    f"bestScore={debug['best_score']:.3f} selScore={debug['selected_score']:.3f} "
-                    f"L={debug['left_neighbor_score']:.3f} R={debug['right_neighbor_score']:.3f} "
-                    f"guide={debug['guide_freq']:.3f} coarse={debug['coarse_freq']:.3f} fine={debug['fine_freq']:.3f} "
-                    f"guidePk={debug['guide_peak_mag']:.3f} coarsePk={debug['coarse_peak_mag']:.3f} finePk={debug['fine_peak_mag']:.3f} "
+                    f"gateChanged={debug['gate_changed']} bestScore={debug['best_score']:.3f} "
+                    f"selScore={debug['selected_score']:.3f} "
+                    f"guide={debug['guide_freq']:.3f} vmeGuide={debug['vme_guide_freq']:.3f} "
+                    f"coarse={debug['coarse_freq']:.3f} runner={debug['runner_up_freq']:.3f} "
+                    f"fine={debug['fine_freq']:.3f} tracked={debug['tracked_freq']:.3f} "
+                    f"guidePk={debug['guide_peak_mag']:.3f} coarsePk={debug['coarse_peak_mag']:.3f} "
+                    f"runnerPk={debug['runner_up_peak_mag']:.3f} finePk={debug['fine_peak_mag']:.3f} "
+                    f"trackedPk={debug['tracked_peak_mag']:.3f} "
                     f"sigP={debug['signal_power']:.3f} sampP={debug['sample_power_mean']:.3f} "
-                    f"thr={debug['power_threshold']:.3f} alpha={debug['alpha']:.5f} "
+                    f"thr={debug['power_threshold']:.3f} mtiAlpha={debug['mti_alpha']:.5f} "
+                    f"vmeAlpha={debug['vme_alpha']:.1f} vmeIter={debug['vme_iterations']} "
+                    f"vmeErr={debug['vme_last_rel_err']:.6f} trackSel={debug['track_selected']} "
+                    f"stepLim={debug['step_limited']} "
                     f"range={debug['selected_range_meters']:.3f} m filled={debug['is_filled']} "
                     f"samples={debug['sample_count']}/{debug['window_length']} valid={debug['valid']}"
                 )

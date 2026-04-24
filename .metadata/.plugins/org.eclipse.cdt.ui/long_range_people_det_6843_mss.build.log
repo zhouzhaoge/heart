@@ -69,24 +69,24 @@ D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/scripts/Ima
 Parsing the input object file, long_range_people_det_6843_mss.xer4f.
 Appending zeros 0
 Appending zeros 256
-Appending zeros 159656
+Appending zeros 160024
 File conversion complete!
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/scripts/ImageCreator/multicore_image_generator/MulticoreImageGen.exe LE 37 0x00000006 long_range_people_det_6843_demo.bin 0x35510000 long_range_people_det_6843_mss.tmp 0xb5510000 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/firmware/radarss/xwr6xxx_radarss_rprc.bin 0xd5510000 E:/embedded/ccs_project/work3/long_range_people_det_6843_dss/Debug/long_range_people_det_6843_dss.bin
 Number of Input Files 3
-Number of zeros 32
+Number of zeros 40
 Number of zeros 8
 Number of zeros 16
  
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/scripts/ImageCreator/crc_multicore_image/crc_multicore_image.exe long_range_people_det_6843_demo.bin long_range_people_det_6843_demo.tmp
-size of App Image is 564672 bytes
+size of App Image is 565056 bytes
 cur_crc_read_addr 128
-cur_crc_read_addr 170048
-cur_crc_read_addr 417472
+cur_crc_read_addr 170432
+cur_crc_read_addr 417856
 Failed to remove CRC temp file
  
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/scripts/ImageCreator/append_bin_crc/gen_bincrc32.exe long_range_people_det_6843_demo.bin
->>>> Binary CRC32 = cdde2a30 <<<<
->>>> Total bytes in binary file 564676 <<<<
+>>>> Binary CRC32 = 4c75f015 <<<<
+>>>> Total bytes in binary file 565060 <<<<
  
  
 
