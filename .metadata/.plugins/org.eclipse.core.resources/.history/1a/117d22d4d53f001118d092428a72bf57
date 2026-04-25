@@ -1,0 +1,29 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+################################################################################
+
+SHELL = cmd.exe
+
+# Each subdirectory must supply rules for building sources it contributes
+%.oe674: ../%.c $(GEN_OPTS) | $(GEN_FILES) $(GEN_MISC_FILES)
+	@echo 'Building file: "$<"'
+	@echo 'Invoking: C6000 Compiler'
+	"D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/bin/cl6x" -mv6740 --abi=eabi -O3 --opt_for_speed=3 --include_path="D:/AppGallery/subject/MMWAVE-SDK/dsplib_c64Px_3_4_0_0/packages/ti/dsplib/lib" --include_path="D:/AppGallery/subject/MMWAVE-SDK/mathlib_c674x_3_1_2_1/packages/ti/mathlib/lib" --include_path="E:/embedded/ccs_project/work3/long_range_people_det_6843_dss" --include_path="D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages" --include_path="D:/AppGallery/subject/MMWAVE-SDK/dsplib_c64Px_3_4_0_0/packages" --include_path="D:/AppGallery/subject/MMWAVE-SDK/mathlib_c674x_3_1_2_1/packages" --include_path="D:/AppGallery/subject/ccs/radar_toolbox_4_00_00_05/source/ti/custom_sdk_files/sdk3" --include_path="D:/AppGallery/subject/ccs/radar_toolbox_4_00_00_05" --include_path="D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include" --define=SOC_XWR68XX --define=SUBSYS_DSS --define=MMWAVE_L3RAM_NUM_BANK=6 --define=MMWAVE_SHMEM_TCMA_NUM_BANK=0 --define=MMWAVE_SHMEM_TCMB_NUM_BANK=0 --define=MMWAVE_SHMEM_BANK_SIZE=0x20000 --define=MMWAVE_L3_CODEMEM_SIZE=0x100 --define=DOWNLOAD_FROM_CCS --define=DebugP_ASSERT_ENABLED --define=_LITTLE_ENDIAN --define=OBJDET_NO_RANGE --define=GTRACK_3D --define=USE_TRACPROC_OVERHEAD_DPU --define=APP_RESOURCE_FILE='<'mmw_res.h'>' -g --gcc --diag_error=10015 --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections=on --obj_extension=.oe674 --preproc_with_compile --preproc_dependency="$(basename $(<F)).d_raw" $(GEN_OPTS__FLAG) "$<"
+	@echo 'Finished building: "$<"'
+	@echo ' '
+
+build-2043189567:
+	@$(MAKE) --no-print-directory -Onone -f subdir_rules.mk build-2043189567-inproc
+
+build-2043189567-inproc: ../mmw_dss.cfg
+	@echo 'Building file: "$<"'
+	@echo 'Invoking: XDCtools'
+	"D:/AppGallery/subject/MMWAVE-SDK/xdctools_3_50_08_24_core/xs" --xdcpath="D:/AppGallery/subject/MMWAVE-SDK/bios_6_73_01_01/packages;" xdc.tools.configuro -o configPkg -t ti.targets.elf.C674 -p ti.platforms.c6x:IWR68XX:false:600 -r release -c "D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12" --compileOptions "--enum_type=int " "$<"
+	@echo 'Finished building: "$<"'
+	@echo ' '
+
+configPkg/linker.cmd: build-2043189567 ../mmw_dss.cfg
+configPkg/compiler.opt: build-2043189567
+configPkg: build-2043189567
+
+

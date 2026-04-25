@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>心率调试报告 / Heart Rate Debug Report - capture_20260425_084303</title>
+  <style>
+    :root {
+      --bg: #f7f4eb;
+      --panel: #fffdf8;
+      --ink: #1f2a2e;
+      --muted: #5e696d;
+      --line: #d8cdb8;
+      --accent: #b5482f;
+      --accent-2: #1f7a8c;
+      --accent-3: #7a9e1f;
+      --accent-4: #7d5ba6;
+      --warn: #cf6a32;
+    }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top right, rgba(181,72,47,0.14), transparent 28%),
+        radial-gradient(circle at left 20%, rgba(31,122,140,0.12), transparent 24%),
+        var(--bg);
+      color: var(--ink);
+      font: 15px/1.45 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    main {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 28px 22px 40px;
+    }
+    h1, h2 {
+      margin: 0 0 12px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    h1 {
+      font-size: 34px;
+    }
+    h2 {
+      font-size: 22px;
+    }
+    .subtitle {
+      color: var(--muted);
+      margin: 6px 0 22px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(250,247,239,0.96));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 10px 24px rgba(61, 48, 32, 0.08);
+      padding: 18px 18px 16px;
+    }
+    .panel.wide {
+      grid-column: 1 / -1;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 8px;
+      border-bottom: 1px solid #ebe2d3;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      width: 42%;
+    }
+    .chart-wrap {
+      margin-top: 8px;
+    }
+    canvas {
+      width: 100%;
+      height: 320px;
+      display: block;
+      border-radius: 12px;
+      background: #fffefb;
+      border: 1px solid #efe6d8;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 18px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .legend span::before {
+      content: "";
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      margin-right: 8px;
+      vertical-align: -1px;
+      background: var(--dot, #000);
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font: 13px/1.4 Consolas, "Courier New", monospace;
+      color: #263338;
+      background: #fbf8f1;
+      border: 1px solid #efe6d8;
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .note {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>心率调试报告 / Heart Rate Debug Report - capture_20260425_084303</h1>
+    <div class="subtitle">抓包目录 / Capture directory: E:\embedded\ccs_project\work3\captures\capture_20260425_084303</div>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>摘要 / Summary</h2>
+        <table>
+          <tr><th>合并行数 / Merged rows</th><td>155</td></tr>
+<tr><th>有效行数 / Valid rows</th><td>105</td></tr>
+<tr><th>有效帧范围 / Valid frame range</th><td>487 -&gt; 1527</td></tr>
+<tr><th>有效 BPM 最小/平均/最大 / Valid BPM min/avg/max</th><td>74.97 / 78.37 / 84.02</td></tr>
+<tr><th>Guide/VME 平均差值 / Guide-VME gap avg bpm</th><td>0.50</td></tr>
+<tr><th>主峰-细化差值 / Coarse-Fine gap avg/max bpm</th><td>0.80 / 10.06</td></tr>
+<tr><th>跟踪-细化差值 / Tracked-Fine gap avg/max bpm</th><td>1.20 / 80.98</td></tr>
+<tr><th>竞争比平均/最大 / Competition avg/max</th><td>0.162 / 0.328</td></tr>
+<tr><th>次峰与主峰距离 / Runner gap avg/max bpm</th><td>1.23 / 1.81</td></tr>
+<tr><th>跟踪接管次数 / Track selected count</th><td>99</td></tr>
+<tr><th>步进限制次数 / Step limited count</th><td>39</td></tr>
+<tr><th>估计序号范围 / Estimate seq range/count</th><td>9 -&gt; 113 / 105</td></tr>
+<tr><th>处理时间平均/最大 / Proc time avg/max us</th><td>5041 / 6562</td></tr>
+<tr><th>处理余量最小/平均 / Proc margin min/avg us</th><td>30148 / 51271</td></tr>
+<tr><th>发送时间平均/最大 / TX write avg/max us</th><td>2117 / 2138</td></tr>
+<tr><th>发送覆盖最大值 / TX overwrite max</th><td>0</td></tr>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>初步判断 / Initial Findings</h2>
+        <p><strong>结论 / Conclusion:</strong> 本次更可能的真实心率带在 <strong>82–84 bpm</strong>。前段大约在 487-607 帧、后段大约在 1357-1417 帧都形成了较稳定的平台。 / The more plausible true heart-rate band in this capture is <strong>82–84 bpm</strong>. It forms stable plateaus roughly around frames 487-607 and 1357-1417.</p>
+<p><strong>中间错误吸引带 / Middle false-attractor band:</strong> 中间阶段算法会切到 <strong>75–78 bpm</strong> 这一组候选，主要窗口大致是 687-687, 707-777, 857-857。这不是串口问题，而是 guide/VME/coarse 一起跳到了低频候选家族。 / In the middle section the algorithm flips to a <strong>75–78 bpm</strong> candidate family, mainly around 687-687, 707-777, 857-857. This is not a UART issue; guide/VME/coarse move together into a lower-frequency candidate family.</p>
+<p><strong>次峰影响 / Runner-up effect:</strong> 次峰不是唯一的错误来源，但会显著降低决策裕量。本次 `competition ratio` 最高约 <strong>0.328</strong>，主峰与次峰平均只差 <strong>1.23 bpm</strong>。这意味着在每个候选家族内部，主峰旁边就有一个比较近的次峰，算法一旦被 guide/VME 带到错误家族，细化和跟踪就更容易被次峰削弱稳定性。 / The runner-up is not the only source of error, but it clearly reduces decision margin. In this capture the maximum `competition ratio` is about <strong>0.328</strong>, while the average primary-to-runner distance is only <strong>1.23 bpm</strong>. That means each candidate family already contains a nearby secondary peak, so once guide/VME lead the search into the wrong family, fine and tracked selection become easier to destabilize.</p>
+<p><strong>平滑下滑与回升 / Why the ramps are smooth:</strong> 当前跟踪半窗约为 <strong>±7.2 bpm</strong>，单次最大步进约为 <strong>0.9 bpm</strong>。所以输出不是瞬时从 84 跳到 75，而是 84 → 83.1 → 82.2 ... → 75 这样逐步滑下，再逐步回升。 / The current tracking half-window is about <strong>±7.2 bpm</strong>, and the max step is about <strong>0.9 bpm</strong> per estimate. So the output does not jump from 84 to 75 instantly; it slides down as 84 → 83.1 → 82.2 ... → 75, then climbs back in the same stepped way.</p>
+<p><strong>传输健康 / Transport health:</strong> 本次 `txWriteUs` 平均约 <strong>2117 us</strong>，`txOverwriteCount` 最大为 <strong>0</strong>，最小处理余量约 <strong>30148 us</strong>。串口发送是健康的，不像是它导致了心率不稳定。 / TX stays healthy in this capture, so UART is unlikely to be the source of heart-rate instability.</p>
+        <div class="note">本报告使用当前精简版 debug 字段，并包含传输健康统计。 / This report uses the compact debug fields and includes transport-health statistics.</div>
+      </section>
+
+      <section class="panel wide">
+        <h2>可能根因 / Likely Root Causes</h2>
+        <table>
+          <tr><th>更可能真实心率 / Likely true HR</th><td>82–84 bpm 更像真实目标心率；75–78 bpm 更像被候选切换和跟踪限速拉出来的错误吸引带。 / 82–84 bpm looks more like the real target band, while 75–78 bpm behaves more like a false attractor created by candidate switching and tracking rate limit.</td></tr>
+<tr><th>次峰作用 / Runner-up role</th><td>次峰通常离主峰很近，会降低主峰优势；即使它不是最终输出，也会让错误候选家族更容易在后续流程里占优。 / The runner-up usually stays close to the main peak and reduces the main peak's margin; even when it is not the final output, it makes the wrong candidate family easier to win later decisions.</td></tr>
+<tr><th>跟踪窗影响 / Tracking window effect</th><td>当前跟踪半窗约 ±7.2 bpm。84 bpm 附近时，下边界能碰到 76.8 bpm 一带；75 bpm 附近时，上边界又能碰到 82.2 bpm 一带，所以两个错误家族可以互相“够到”。 / The current tracking half-window is about ±7.2 bpm. Around 84 bpm the lower edge can reach the 76.8 bpm region, and around 75 bpm the upper edge can reach about 82.2 bpm, so the two candidate families can touch each other.</td></tr>
+<tr><th>步进限制影响 / Step-limit effect</th><td>当前最大步进约 0.9 bpm 每次估计，因此一旦错误候选被接纳，输出会表现成连续斜坡，而不是瞬时跳变。 / The current max step is about 0.9 bpm per estimate, so once a wrong candidate is accepted, the output becomes a ramp rather than an instantaneous jump.</td></tr>
+<tr><th>串口是否是主因 / Is UART the main cause</th><td>不是主因。当前数据里发送耗时远低于处理余量，且没有覆盖丢弃。 / No. TX time stays far below processing margin and there is no overwrite/drop behavior in this capture.</td></tr>
+        </table>
+      </section>
+
+      <section class="panel wide">
+        <h2>心率与候选轨迹 / Heart Rate And Candidate Tracks</h2>
+        <div class="chart-wrap"><canvas id="chart-bpm" width="1400" height="360"></canvas></div>
+        <div class="legend">
+          <span style="--dot:#b5482f">输出心率 / Output BPM</span>
+          <span style="--dot:#1f7a8c">主候选 / Coarse BPM</span>
+          <span style="--dot:#7a9e1f">细化结果 / Fine BPM</span>
+          <span style="--dot:#7d5ba6">跟踪结果 / Tracked BPM</span>
+          <span style="--dot:#cf6a32">次峰 / Runner-up BPM</span>
+        </div>
+        <div class="note">如果红色输出线在前后两段都稳定停在 82–84 bpm，而中间被拖到 75 bpm 附近，再回到高位，更像是算法在两个候选家族之间切换。 / If the red output line stays on the 82–84 bpm plateau in the early and late segments, gets dragged toward 75 bpm in the middle, and later returns upward, that looks more like switching between candidate families than transport failure.</div>
+      </section>
+
+      <section class="panel wide">
+        <h2>次峰影响 / Runner-up Influence</h2>
+        <div class="chart-wrap"><canvas id="chart-runner" width="1400" height="360"></canvas></div>
+        <div class="legend">
+          <span style="--dot:#b5482f">输出心率 / Output BPM</span>
+          <span style="--dot:#1f7a8c">主候选 / Primary Candidate</span>
+          <span style="--dot:#cf6a32">次峰 / Runner-up</span>
+          <span style="--dot:#7d5ba6">跟踪结果 / Tracked Result</span>
+        </div>
+        <div class="note">看图时重点看两点：1. 橙色次峰线是否长期靠近蓝色主候选线；2. 这种靠近是否和下面图里的竞争比升高同时出现。若同时出现，说明次峰正在削弱主峰的决策裕量。 / Watch two things here: 1. whether the orange runner-up line stays close to the blue primary-candidate line; 2. whether that closeness happens together with a higher competition ratio in the next chart. When both happen together, the runner-up is reducing the primary peak's decision margin.</div>
+      </section>
+
+      <section class="panel wide">
+        <h2>不稳定指标 / Instability Indicators</h2>
+        <div class="chart-wrap"><canvas id="chart-risk" width="1400" height="360"></canvas></div>
+        <div class="legend">
+          <span style="--dot:#b5482f">竞争比 / Competition Ratio</span>
+          <span style="--dot:#1f7a8c">主峰-细化差 / Coarse-Fine Gap (bpm)</span>
+          <span style="--dot:#7d5ba6">跟踪-细化差 / Tracked-Fine Gap (bpm)</span>
+          <span style="--dot:#cf6a32">步进限制 / Step Limited</span>
+          <span style="--dot:#7a9e1f">跟踪接管 / Track Selected</span>
+        </div>
+        <div class="note">当 `stepLimited` 连续出现时，通常意味着输出正在被限速拉向另一组候选。 / When `stepLimited` appears repeatedly, the output is usually being rate-limited toward another candidate group.</div>
+      </section>
+
+      <section class="panel wide">
+        <h2>传输健康 / Transport Health</h2>
+        <div class="chart-wrap"><canvas id="chart-transport" width="1400" height="360"></canvas></div>
+        <div class="legend">
+          <span style="--dot:#1f7a8c">处理时间 / Proc Time (us)</span>
+          <span style="--dot:#7a9e1f">处理余量 / Proc Margin (us)</span>
+          <span style="--dot:#b5482f">发送耗时 / TX Write (us)</span>
+          <span style="--dot:#7d5ba6">估计序号 / Estimate Seq</span>
+          <span style="--dot:#cf6a32">覆盖次数 / Overwrite Count</span>
+        </div>
+        <div class="note">若发送耗时远小于处理余量、且覆盖次数维持为 0，则基本可以排除“debug 传输把实时链路挤爆”这类问题。 / If TX time stays far below processing margin and overwrite remains 0, you can mostly rule out the idea that debug transmission is choking the real-time path.</div>
+      </section>
+
+      <section class="panel wide">
+        <h2>重点可疑行 / Top Suspicious Rows</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>帧 / Frame</th>
+              <th>输出 / BPM</th>
+              <th>Guide</th>
+              <th>主峰 / Coarse</th>
+              <th>次峰 / Runner-up</th>
+              <th>细化 / Fine</th>
+              <th>跟踪 / Tracked</th>
+              <th>竞争比 / Competition</th>
+              <th>跟踪接管 / TrackSel</th>
+              <th>步进限制 / StepLim</th>
+              <th>发送耗时 / TX us</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>517</td><td>81.91</td><td>82.91</td><td>84.12</td><td>82.31</td><td>81.91</td><td>83.99</td><td>0.317</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>1327</td><td>81.30</td><td>83.52</td><td>84.12</td><td>82.31</td><td>81.30</td><td>83.99</td><td>0.317</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>1277</td><td>76.80</td><td>84.42</td><td>84.12</td><td>82.31</td><td>76.80</td><td>83.10</td><td>0.317</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>1307</td><td>79.50</td><td>83.82</td><td>84.12</td><td>82.31</td><td>79.50</td><td>84.00</td><td>0.313</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>537</td><td>83.71</td><td>82.91</td><td>84.12</td><td>82.31</td><td>83.71</td><td>83.99</td><td>0.311</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>1297</td><td>78.60</td><td>83.82</td><td>84.12</td><td>82.31</td><td>78.60</td><td>84.00</td><td>0.310</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>1287</td><td>77.70</td><td>84.42</td><td>84.12</td><td>82.31</td><td>77.70</td><td>84.00</td><td>0.304</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>1337</td><td>82.20</td><td>83.52</td><td>84.12</td><td>82.31</td><td>82.20</td><td>84.03</td><td>0.303</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>527</td><td>82.81</td><td>82.91</td><td>84.12</td><td>82.31</td><td>82.81</td><td>84.03</td><td>0.303</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>1317</td><td>80.40</td><td>83.52</td><td>84.12</td><td>82.31</td><td>80.40</td><td>84.03</td><td>0.303</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>707</td><td>76.82</td><td>76.28</td><td>75.08</td><td>76.88</td><td>76.82</td><td>75.03</td><td>0.224</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>667</td><td>78.62</td><td>76.28</td><td>75.08</td><td>76.88</td><td>78.62</td><td>75.03</td><td>0.223</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>877</td><td>77.08</td><td>73.87</td><td>75.08</td><td>76.88</td><td>77.08</td><td>75.04</td><td>0.223</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>677</td><td>77.72</td><td>76.28</td><td>75.08</td><td>76.88</td><td>77.72</td><td>74.99</td><td>0.220</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>717</td><td>75.92</td><td>75.98</td><td>75.08</td><td>76.88</td><td>75.92</td><td>75.00</td><td>0.219</td><td>1</td><td>1</td><td>2131</td></tr>
+<tr><td>777</td><td>76.80</td><td>77.49</td><td>78.09</td><td>79.90</td><td>76.80</td><td>78.01</td><td>0.217</td><td>1</td><td>1</td><td>2131</td></tr>
+          </tbody>
+        </table>
+        <div class="note">这些行优先展示 `stepLimited`、`trackSelected`、高竞争比和较大的主峰/细化偏差。 / These rows prioritize `stepLimited`, `trackSelected`, high competition ratio, and larger coarse/fine separation.</div>
+      </section>
+
+      <section class="panel wide">
+        <h2>命令行分析输出 / CLI Analysis Output</h2>
+        <pre>E:\embedded\ccs_project\work3\captures\capture_20260425_084303
+  rows: merged=155 valid=105
+  valid frames: 487 -&gt; 1527
+  valid bpm min/avg/max: 74.97 / 78.37 / 84.02
+  coarse/fine/tracked avg bpm: 53.15 / 53.09 / 52.56
+  competition avg/max: 0.162 / 0.328
+  tx write avg/max us: 2117 / 2138
+  tx overwrite max: 0
+  suspicious rows: 10 shown
+    frame=517 bpm=81.91 coarse=84.12 runner=82.31 fine=81.91 tracked=83.99 competition=0.317 trackSel=1 stepLim=1
+    frame=1327 bpm=81.30 coarse=84.12 runner=82.31 fine=81.30 tracked=83.99 competition=0.317 trackSel=1 stepLim=1
+    frame=1277 bpm=76.80 coarse=84.12 runner=82.31 fine=76.80 tracked=83.10 competition=0.317 trackSel=1 stepLim=1
+    frame=1307 bpm=79.50 coarse=84.12 runner=82.31 fine=79.50 tracked=84.00 competition=0.313 trackSel=1 stepLim=1
+    frame=537 bpm=83.71 coarse=84.12 runner=82.31 fine=83.71 tracked=83.99 competition=0.311 trackSel=1 stepLim=1
+    frame=1297 bpm=78.60 coarse=84.12 runner=82.31 fine=78.60 tracked=84.00 competition=0.310 trackSel=1 stepLim=1
+    frame=1287 bpm=77.70 coarse=84.12 runner=82.31 fine=77.70 tracked=84.00 competition=0.304 trackSel=1 stepLim=1
+    frame=1337 bpm=82.20 coarse=84.12 runner=82.31 fine=82.20 tracked=84.03 competition=0.303 trackSel=1 stepLim=1
+    frame=527 bpm=82.81 coarse=84.12 runner=82.31 fine=82.81 tracked=84.03 competition=0.303 trackSel=1 stepLim=1
+    frame=1317 bpm=80.40 coarse=84.12 runner=82.31 fine=80.40 tracked=84.03 competition=0.303 trackSel=1 stepLim=1</pre>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const rows = [{"frame": 1, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5715.0, "procMarginUs": 3082147.0, "txWriteUs": 0.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 10, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5374.0, "procMarginUs": 31150.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 20, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 6562.0, "procMarginUs": 30148.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 30, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5981.0, "procMarginUs": 30615.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 40, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5453.0, "procMarginUs": 31235.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 50, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5181.0, "procMarginUs": 31457.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 60, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4982.0, "procMarginUs": 31667.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 70, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5491.0, "procMarginUs": 31380.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 73, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5645.0, "procMarginUs": 30931.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 82, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5215.0, "procMarginUs": 31394.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 88, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5368.0, "procMarginUs": 31277.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 97, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5176.0, "procMarginUs": 31435.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 107, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5092.0, "procMarginUs": 31622.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 117, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4988.0, "procMarginUs": 31682.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 127, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4912.0, "procMarginUs": 31640.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 137, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4909.0, "procMarginUs": 31700.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 147, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4953.0, "procMarginUs": 31673.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 157, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4969.0, "procMarginUs": 31691.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 167, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5004.0, "procMarginUs": 31764.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 177, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5012.0, "procMarginUs": 31623.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 187, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4989.0, "procMarginUs": 31567.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 197, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4985.0, "procMarginUs": 31760.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 207, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 5010.0, "procMarginUs": 31646.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 217, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4935.0, "procMarginUs": 31701.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 227, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4962.0, "procMarginUs": 31599.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 237, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4937.0, "procMarginUs": 31709.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 247, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4953.0, "procMarginUs": 31647.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 257, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4922.0, "procMarginUs": 31785.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 267, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4876.0, "procMarginUs": 31690.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 277, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4851.0, "procMarginUs": 31726.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 287, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4927.0, "procMarginUs": 31762.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 297, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4987.0, "procMarginUs": 31690.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 307, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4897.0, "procMarginUs": 31689.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 317, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4903.0, "procMarginUs": 31762.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 327, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4786.0, "procMarginUs": 31757.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 337, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4946.0, "procMarginUs": 31624.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 347, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4832.0, "procMarginUs": 31719.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 357, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4889.0, "procMarginUs": 31718.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 367, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4895.0, "procMarginUs": 31851.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 377, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4786.0, "procMarginUs": 31863.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 387, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4851.0, "procMarginUs": 31708.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 397, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4911.0, "procMarginUs": 31725.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 407, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4927.0, "procMarginUs": 31709.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 417, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4854.0, "procMarginUs": 31715.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 427, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4884.0, "procMarginUs": 31836.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 437, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4914.0, "procMarginUs": 31747.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 447, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4829.0, "procMarginUs": 31852.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 457, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4911.0, "procMarginUs": 31690.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 467, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4818.0, "procMarginUs": 31737.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 477, "valid": 0, "bpm": 0.0, "guide": 0.0, "vmeGuide": 0.0, "coarse": 0.0, "runner": 0.0, "fine": 0.0, "tracked": 0.0, "competition": 0.0, "runnerGap": 0.0, "coarseFineGap": 0.0, "trackedFineGap": 0.0, "confidence": 0.0, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4851.0, "procMarginUs": 31851.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 0}, {"frame": 487, "valid": 1, "bpm": 80.979, "guide": 81.106, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 80.979, "tracked": 0.0, "competition": 0.20131, "runnerGap": 1.809, "coarseFineGap": 0.127, "trackedFineGap": 80.979, "confidence": 11290.125, "trackSelected": 0, "stepLimited": 0, "procTimeUs": 4922.0, "procMarginUs": 31822.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 9}, {"frame": 497, "valid": 1, "bpm": 80.997, "guide": 81.407, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 80.997, "tracked": 80.997, "competition": 0.20818, "runnerGap": 1.809, "coarseFineGap": 0.109, "trackedFineGap": 0.0, "confidence": 10328.902, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4871.0, "procMarginUs": 31746.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 10}, {"frame": 507, "valid": 1, "bpm": 81.015, "guide": 82.312, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 81.015, "tracked": 81.015, "competition": 0.20823, "runnerGap": 1.809, "coarseFineGap": 0.091, "trackedFineGap": 0.0, "confidence": 6035.88, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4907.0, "procMarginUs": 31640.0, "txWriteUs": 2135.0, "overwrite": 0, "estimateSeq": 11}, {"frame": 517, "valid": 1, "bpm": 81.915, "guide": 82.915, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 81.915, "tracked": 83.992, "competition": 0.31719, "runnerGap": 1.809, "coarseFineGap": 2.206, "trackedFineGap": 2.077, "confidence": 8935.323, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4813.0, "procMarginUs": 31726.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 12}, {"frame": 527, "valid": 1, "bpm": 82.815, "guide": 82.915, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 82.815, "tracked": 84.026, "competition": 0.30324, "runnerGap": 1.809, "coarseFineGap": 1.306, "trackedFineGap": 1.211, "confidence": 8686.304, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4976.0, "procMarginUs": 31610.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 13}, {"frame": 537, "valid": 1, "bpm": 83.715, "guide": 82.915, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 83.715, "tracked": 83.988, "competition": 0.31117, "runnerGap": 1.809, "coarseFineGap": 0.406, "trackedFineGap": 0.273, "confidence": 8939.097, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4865.0, "procMarginUs": 31735.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 14}, {"frame": 547, "valid": 1, "bpm": 83.986, "guide": 82.915, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 83.986, "tracked": 83.986, "competition": 0.3122, "runnerGap": 1.809, "coarseFineGap": 0.135, "trackedFineGap": 0.0, "confidence": 9850.198, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4823.0, "procMarginUs": 31768.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 15}, {"frame": 557, "valid": 1, "bpm": 84.004, "guide": 82.915, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 84.004, "tracked": 84.004, "competition": 0.30278, "runnerGap": 1.809, "coarseFineGap": 0.117, "trackedFineGap": 0.0, "confidence": 9725.939, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4912.0, "procMarginUs": 31765.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 16}, {"frame": 567, "valid": 1, "bpm": 83.986, "guide": 82.915, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 83.986, "tracked": 83.986, "competition": 0.31708, "runnerGap": 1.809, "coarseFineGap": 0.135, "trackedFineGap": 0.0, "confidence": 10006.878, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4851.0, "procMarginUs": 31745.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 17}, {"frame": 577, "valid": 1, "bpm": 84.004, "guide": 83.216, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 84.004, "tracked": 84.004, "competition": 0.30395, "runnerGap": 1.809, "coarseFineGap": 0.117, "trackedFineGap": 0.0, "confidence": 10884.051, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5440.0, "procMarginUs": 31251.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 18}, {"frame": 587, "valid": 1, "bpm": 83.986, "guide": 82.915, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 83.986, "tracked": 83.986, "competition": 0.30803, "runnerGap": 1.809, "coarseFineGap": 0.135, "trackedFineGap": 0.0, "confidence": 8173.878, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5373.0, "procMarginUs": 31167.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 19}, {"frame": 597, "valid": 1, "bpm": 84.004, "guide": 82.915, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 84.004, "tracked": 84.004, "competition": 0.31484, "runnerGap": 1.809, "coarseFineGap": 0.117, "trackedFineGap": 0.0, "confidence": 8147.91, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5196.0, "procMarginUs": 31485.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 20}, {"frame": 607, "valid": 1, "bpm": 84.022, "guide": 82.613, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 84.022, "tracked": 84.022, "competition": 0.30264, "runnerGap": 1.809, "coarseFineGap": 0.099, "trackedFineGap": 0.0, "confidence": 5418.075, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5135.0, "procMarginUs": 31536.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 21}, {"frame": 617, "valid": 1, "bpm": 83.122, "guide": 75.98, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 83.122, "tracked": 76.822, "competition": 0.21698, "runnerGap": 1.809, "coarseFineGap": 8.046, "trackedFineGap": 6.3, "confidence": 10459.537, "trackSelected": 0, "stepLimited": 1, "procTimeUs": 5512.0, "procMarginUs": 31164.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 22}, {"frame": 627, "valid": 1, "bpm": 82.222, "guide": 76.583, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 82.222, "tracked": 77.979, "competition": 0.20667, "runnerGap": 1.809, "coarseFineGap": 4.131, "trackedFineGap": 4.243, "confidence": 8801.812, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 5245.0, "procMarginUs": 31470.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 23}, {"frame": 637, "valid": 1, "bpm": 81.322, "guide": 76.583, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 81.322, "tracked": 78.017, "competition": 0.21559, "runnerGap": 1.809, "coarseFineGap": 3.231, "trackedFineGap": 3.305, "confidence": 7982.002, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 5106.0, "procMarginUs": 31653.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 24}, {"frame": 647, "valid": 1, "bpm": 80.422, "guide": 76.583, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 80.422, "tracked": 78.019, "competition": 0.21381, "runnerGap": 1.809, "coarseFineGap": 2.331, "trackedFineGap": 2.402, "confidence": 8007.047, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4937.0, "procMarginUs": 31577.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 25}, {"frame": 657, "valid": 1, "bpm": 79.522, "guide": 76.281, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 79.522, "tracked": 74.99, "competition": 0.21568, "runnerGap": 1.809, "coarseFineGap": 4.446, "trackedFineGap": 4.532, "confidence": 10254.711, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4809.0, "procMarginUs": 31655.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 26}, {"frame": 667, "valid": 1, "bpm": 78.622, "guide": 76.281, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 78.622, "tracked": 75.029, "competition": 0.22334, "runnerGap": 1.809, "coarseFineGap": 3.546, "trackedFineGap": 3.593, "confidence": 10748.947, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4984.0, "procMarginUs": 31721.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 27}, {"frame": 677, "valid": 1, "bpm": 77.722, "guide": 76.281, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 77.722, "tracked": 74.995, "competition": 0.22044, "runnerGap": 1.809, "coarseFineGap": 2.646, "trackedFineGap": 2.727, "confidence": 10357.1, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4947.0, "procMarginUs": 31740.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 28}, {"frame": 687, "valid": 1, "bpm": 76.822, "guide": 76.281, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 76.822, "tracked": 74.997, "competition": 0.21278, "runnerGap": 1.809, "coarseFineGap": 1.746, "trackedFineGap": 1.825, "confidence": 10218.909, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4913.0, "procMarginUs": 31671.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 29}, {"frame": 697, "valid": 1, "bpm": 77.722, "guide": 76.583, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 77.722, "tracked": 77.995, "competition": 0.20936, "runnerGap": 1.809, "coarseFineGap": 0.369, "trackedFineGap": 0.273, "confidence": 8162.187, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4814.0, "procMarginUs": 31767.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 30}, {"frame": 707, "valid": 1, "bpm": 76.822, "guide": 76.281, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 76.822, "tracked": 75.033, "competition": 0.22383, "runnerGap": 1.809, "coarseFineGap": 1.746, "trackedFineGap": 1.789, "confidence": 9191.878, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4873.0, "procMarginUs": 31768.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 31}, {"frame": 717, "valid": 1, "bpm": 75.922, "guide": 75.98, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.922, "tracked": 74.999, "competition": 0.21915, "runnerGap": 1.809, "coarseFineGap": 0.846, "trackedFineGap": 0.923, "confidence": 11009.42, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4941.0, "procMarginUs": 31679.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 32}, {"frame": 727, "valid": 1, "bpm": 75.022, "guide": 75.98, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.022, "tracked": 74.965, "competition": 0.21237, "runnerGap": 1.809, "coarseFineGap": 0.054, "trackedFineGap": 0.056, "confidence": 10601.298, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4857.0, "procMarginUs": 31747.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 33}, {"frame": 737, "valid": 1, "bpm": 75.004, "guide": 75.98, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21707, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 10699.733, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4837.0, "procMarginUs": 31724.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 34}, {"frame": 747, "valid": 1, "bpm": 75.022, "guide": 75.377, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.022, "tracked": 75.022, "competition": 0.22389, "runnerGap": 1.809, "coarseFineGap": 0.054, "trackedFineGap": 0.0, "confidence": 10348.127, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4854.0, "procMarginUs": 31723.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 35}, {"frame": 757, "valid": 1, "bpm": 75.004, "guide": 76.281, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21773, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 9238.975, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5012.0, "procMarginUs": 31705.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 36}, {"frame": 767, "valid": 1, "bpm": 75.904, "guide": 76.884, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 75.904, "tracked": 77.981, "competition": 0.20949, "runnerGap": 1.809, "coarseFineGap": 2.187, "trackedFineGap": 2.077, "confidence": 8677.294, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4890.0, "procMarginUs": 31739.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 37}, {"frame": 777, "valid": 1, "bpm": 76.804, "guide": 77.487, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 76.804, "tracked": 78.015, "competition": 0.21713, "runnerGap": 1.809, "coarseFineGap": 1.287, "trackedFineGap": 1.211, "confidence": 10101.354, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4786.0, "procMarginUs": 31739.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 38}, {"frame": 787, "valid": 1, "bpm": 77.704, "guide": 77.789, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 77.704, "tracked": 77.977, "competition": 0.21011, "runnerGap": 1.809, "coarseFineGap": 0.387, "trackedFineGap": 0.273, "confidence": 10261.964, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4938.0, "procMarginUs": 31684.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 39}, {"frame": 797, "valid": 1, "bpm": 77.974, "guide": 78.693, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 77.974, "tracked": 77.974, "competition": 0.20722, "runnerGap": 1.809, "coarseFineGap": 0.116, "trackedFineGap": 0.0, "confidence": 10068.625, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4998.0, "procMarginUs": 31679.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 40}, {"frame": 807, "valid": 1, "bpm": 78.029, "guide": 78.392, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 78.029, "tracked": 78.029, "competition": 0.21608, "runnerGap": 1.809, "coarseFineGap": 0.062, "trackedFineGap": 0.0, "confidence": 11194.001, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5005.0, "procMarginUs": 31700.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 41}, {"frame": 817, "valid": 1, "bpm": 78.01, "guide": 78.693, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 78.01, "tracked": 78.01, "competition": 0.21318, "runnerGap": 1.809, "coarseFineGap": 0.08, "trackedFineGap": 0.0, "confidence": 11438.992, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4919.0, "procMarginUs": 31756.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 42}, {"frame": 827, "valid": 1, "bpm": 77.992, "guide": 78.693, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 77.992, "tracked": 77.992, "competition": 0.20629, "runnerGap": 1.809, "coarseFineGap": 0.098, "trackedFineGap": 0.0, "confidence": 11516.47, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4904.0, "procMarginUs": 31822.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 43}, {"frame": 837, "valid": 1, "bpm": 78.01, "guide": 78.693, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 78.01, "tracked": 78.01, "competition": 0.21309, "runnerGap": 1.809, "coarseFineGap": 0.08, "trackedFineGap": 0.0, "confidence": 10097.988, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4997.0, "procMarginUs": 31678.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 44}, {"frame": 847, "valid": 1, "bpm": 78.029, "guide": 78.693, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 78.029, "tracked": 78.029, "competition": 0.21625, "runnerGap": 1.809, "coarseFineGap": 0.062, "trackedFineGap": 0.0, "confidence": 12417.863, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5382.0, "procMarginUs": 31168.0, "txWriteUs": 2135.0, "overwrite": 0, "estimateSeq": 45}, {"frame": 857, "valid": 1, "bpm": 77.129, "guide": 73.869, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 77.129, "tracked": 74.979, "competition": 0.21319, "runnerGap": 1.809, "coarseFineGap": 2.053, "trackedFineGap": 2.15, "confidence": 9914.644, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 5322.0, "procMarginUs": 31238.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 46}, {"frame": 867, "valid": 1, "bpm": 77.977, "guide": 78.09, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 77.977, "tracked": 77.977, "competition": 0.20979, "runnerGap": 1.809, "coarseFineGap": 0.114, "trackedFineGap": 0.0, "confidence": 13926.719, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5111.0, "procMarginUs": 31675.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 47}, {"frame": 877, "valid": 1, "bpm": 77.077, "guide": 73.869, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 77.077, "tracked": 75.035, "competition": 0.22308, "runnerGap": 1.809, "coarseFineGap": 2.001, "trackedFineGap": 2.041, "confidence": 12006.101, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 5491.0, "procMarginUs": 31076.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 48}, {"frame": 887, "valid": 1, "bpm": 76.177, "guide": 73.869, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 76.177, "tracked": 75.001, "competition": 0.21626, "runnerGap": 1.809, "coarseFineGap": 1.101, "trackedFineGap": 1.175, "confidence": 12577.285, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 5163.0, "procMarginUs": 31556.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 49}, {"frame": 897, "valid": 1, "bpm": 75.277, "guide": 73.869, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.277, "tracked": 74.968, "competition": 0.21159, "runnerGap": 1.809, "coarseFineGap": 0.201, "trackedFineGap": 0.309, "confidence": 11952.296, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 5127.0, "procMarginUs": 31354.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 50}, {"frame": 907, "valid": 1, "bpm": 75.006, "guide": 73.568, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.006, "tracked": 75.006, "competition": 0.21527, "runnerGap": 1.809, "coarseFineGap": 0.069, "trackedFineGap": 0.0, "confidence": 10101.217, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5025.0, "procMarginUs": 31724.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 51}, {"frame": 917, "valid": 1, "bpm": 75.024, "guide": 73.568, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.024, "tracked": 75.024, "competition": 0.22234, "runnerGap": 1.809, "coarseFineGap": 0.051, "trackedFineGap": 0.0, "confidence": 10908.232, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4895.0, "procMarginUs": 31723.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 52}, {"frame": 927, "valid": 1, "bpm": 75.006, "guide": 73.568, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.006, "tracked": 75.006, "competition": 0.22124, "runnerGap": 1.809, "coarseFineGap": 0.069, "trackedFineGap": 0.0, "confidence": 11155.209, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4973.0, "procMarginUs": 31711.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 53}, {"frame": 937, "valid": 1, "bpm": 74.988, "guide": 73.568, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 74.988, "tracked": 74.988, "competition": 0.21279, "runnerGap": 1.809, "coarseFineGap": 0.087, "trackedFineGap": 0.0, "confidence": 11176.143, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4786.0, "procMarginUs": 31750.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 54}, {"frame": 947, "valid": 1, "bpm": 74.97, "guide": 73.568, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 74.97, "tracked": 74.97, "competition": 0.21376, "runnerGap": 1.809, "coarseFineGap": 0.106, "trackedFineGap": 0.0, "confidence": 10516.046, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5359.0, "procMarginUs": 31377.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 55}, {"frame": 957, "valid": 1, "bpm": 75.024, "guide": 73.568, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.024, "tracked": 75.024, "competition": 0.22152, "runnerGap": 1.809, "coarseFineGap": 0.051, "trackedFineGap": 0.0, "confidence": 10059.835, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5391.0, "procMarginUs": 31157.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 56}, {"frame": 967, "valid": 1, "bpm": 75.006, "guide": 73.568, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.006, "tracked": 75.006, "competition": 0.22125, "runnerGap": 1.809, "coarseFineGap": 0.069, "trackedFineGap": 0.0, "confidence": 9934.489, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5340.0, "procMarginUs": 31118.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 57}, {"frame": 977, "valid": 1, "bpm": 74.988, "guide": 73.568, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 74.988, "tracked": 74.988, "competition": 0.21204, "runnerGap": 1.809, "coarseFineGap": 0.087, "trackedFineGap": 0.0, "confidence": 10715.732, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5063.0, "procMarginUs": 31615.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 58}, {"frame": 987, "valid": 1, "bpm": 75.888, "guide": 78.09, "vmeGuide": 78.0, "coarse": 78.09, "runner": 79.899, "fine": 75.888, "tracked": 78.001, "competition": 0.214, "runnerGap": 1.809, "coarseFineGap": 2.203, "trackedFineGap": 2.114, "confidence": 13061.641, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4989.0, "procMarginUs": 31670.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 59}, {"frame": 997, "valid": 1, "bpm": 75.004, "guide": 74.774, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.22182, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 12032.829, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4926.0, "procMarginUs": 31686.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 60}, {"frame": 1007, "valid": 1, "bpm": 75.022, "guide": 74.774, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.022, "tracked": 75.022, "competition": 0.2235, "runnerGap": 1.809, "coarseFineGap": 0.054, "trackedFineGap": 0.0, "confidence": 12961.659, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5497.0, "procMarginUs": 31302.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 61}, {"frame": 1017, "valid": 1, "bpm": 75.004, "guide": 74.472, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21794, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 12061.249, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5519.0, "procMarginUs": 31211.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 62}, {"frame": 1027, "valid": 1, "bpm": 74.986, "guide": 74.472, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 74.986, "tracked": 74.986, "competition": 0.21229, "runnerGap": 1.809, "coarseFineGap": 0.09, "trackedFineGap": 0.0, "confidence": 13254.34, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5059.0, "procMarginUs": 31266.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 63}, {"frame": 1037, "valid": 1, "bpm": 75.004, "guide": 74.774, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21757, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 13751.342, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5069.0, "procMarginUs": 31363.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 64}, {"frame": 1047, "valid": 1, "bpm": 75.022, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.022, "tracked": 75.022, "competition": 0.22384, "runnerGap": 1.809, "coarseFineGap": 0.054, "trackedFineGap": 0.0, "confidence": 12875.864, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5051.0, "procMarginUs": 31756.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 65}, {"frame": 1057, "valid": 1, "bpm": 75.004, "guide": 75.377, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21855, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 13221.397, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5058.0, "procMarginUs": 31615.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 66}, {"frame": 1067, "valid": 1, "bpm": 74.986, "guide": 75.377, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 74.986, "tracked": 74.986, "competition": 0.21228, "runnerGap": 1.809, "coarseFineGap": 0.09, "trackedFineGap": 0.0, "confidence": 12774.226, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5021.0, "procMarginUs": 31567.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 67}, {"frame": 1077, "valid": 1, "bpm": 75.004, "guide": 75.377, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21739, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 12576.383, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4853.0, "procMarginUs": 31736.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 68}, {"frame": 1087, "valid": 1, "bpm": 75.022, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.022, "tracked": 75.022, "competition": 0.22376, "runnerGap": 1.809, "coarseFineGap": 0.054, "trackedFineGap": 0.0, "confidence": 12687.952, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5021.0, "procMarginUs": 31750.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 69}, {"frame": 1097, "valid": 1, "bpm": 75.004, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21838, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 12713.729, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4884.0, "procMarginUs": 31825.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 70}, {"frame": 1107, "valid": 1, "bpm": 74.986, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 74.986, "tracked": 74.986, "competition": 0.21217, "runnerGap": 1.809, "coarseFineGap": 0.09, "trackedFineGap": 0.0, "confidence": 12755.287, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4923.0, "procMarginUs": 31705.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 71}, {"frame": 1117, "valid": 1, "bpm": 75.004, "guide": 75.377, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21726, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 12568.239, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4922.0, "procMarginUs": 31679.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 72}, {"frame": 1127, "valid": 1, "bpm": 75.022, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.022, "tracked": 75.022, "competition": 0.22362, "runnerGap": 1.809, "coarseFineGap": 0.054, "trackedFineGap": 0.0, "confidence": 13446.447, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4903.0, "procMarginUs": 31697.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 73}, {"frame": 1137, "valid": 1, "bpm": 75.004, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21749, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 13172.193, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4918.0, "procMarginUs": 31757.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 74}, {"frame": 1147, "valid": 1, "bpm": 74.986, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 74.986, "tracked": 74.986, "competition": 0.21229, "runnerGap": 1.809, "coarseFineGap": 0.09, "trackedFineGap": 0.0, "confidence": 13466.883, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4914.0, "procMarginUs": 31718.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 75}, {"frame": 1157, "valid": 1, "bpm": 75.004, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21971, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 14605.456, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5054.0, "procMarginUs": 31575.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 76}, {"frame": 1167, "valid": 1, "bpm": 75.022, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.022, "tracked": 75.022, "competition": 0.22336, "runnerGap": 1.809, "coarseFineGap": 0.054, "trackedFineGap": 0.0, "confidence": 14719.963, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4948.0, "procMarginUs": 31737.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 77}, {"frame": 1177, "valid": 1, "bpm": 75.004, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21561, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 14629.118, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4948.0, "procMarginUs": 31681.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 78}, {"frame": 1187, "valid": 1, "bpm": 74.986, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 74.986, "tracked": 74.986, "competition": 0.21233, "runnerGap": 1.809, "coarseFineGap": 0.09, "trackedFineGap": 0.0, "confidence": 14560.479, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4861.0, "procMarginUs": 31772.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 79}, {"frame": 1197, "valid": 1, "bpm": 75.004, "guide": 75.075, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.22028, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 14013.459, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4909.0, "procMarginUs": 31759.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 80}, {"frame": 1207, "valid": 1, "bpm": 75.022, "guide": 75.377, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.022, "tracked": 75.022, "competition": 0.22305, "runnerGap": 1.809, "coarseFineGap": 0.054, "trackedFineGap": 0.0, "confidence": 14192.256, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4849.0, "procMarginUs": 31732.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 81}, {"frame": 1217, "valid": 1, "bpm": 75.004, "guide": 75.377, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21516, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 13863.914, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4802.0, "procMarginUs": 31751.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 82}, {"frame": 1227, "valid": 1, "bpm": 74.986, "guide": 75.377, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 74.986, "tracked": 74.986, "competition": 0.21274, "runnerGap": 1.809, "coarseFineGap": 0.09, "trackedFineGap": 0.0, "confidence": 14241.261, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4791.0, "procMarginUs": 31773.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 83}, {"frame": 1237, "valid": 1, "bpm": 75.004, "guide": 75.377, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.22064, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 14054.064, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4970.0, "procMarginUs": 31787.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 84}, {"frame": 1247, "valid": 1, "bpm": 75.022, "guide": 75.377, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.022, "tracked": 75.022, "competition": 0.22224, "runnerGap": 1.809, "coarseFineGap": 0.054, "trackedFineGap": 0.0, "confidence": 12885.849, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4804.0, "procMarginUs": 31784.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 85}, {"frame": 1257, "valid": 1, "bpm": 75.004, "guide": 75.678, "vmeGuide": 75.0, "coarse": 75.075, "runner": 76.884, "fine": 75.004, "tracked": 75.004, "competition": 0.21514, "runnerGap": 1.809, "coarseFineGap": 0.072, "trackedFineGap": 0.0, "confidence": 12384.173, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4948.0, "procMarginUs": 31679.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 86}, {"frame": 1267, "valid": 1, "bpm": 75.904, "guide": 84.422, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 75.904, "tracked": 82.204, "competition": 0.30412, "runnerGap": 1.809, "coarseFineGap": 8.217, "trackedFineGap": 6.3, "confidence": 12281.746, "trackSelected": 0, "stepLimited": 1, "procTimeUs": 4992.0, "procMarginUs": 31683.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 87}, {"frame": 1277, "valid": 1, "bpm": 76.804, "guide": 84.422, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 76.804, "tracked": 83.104, "competition": 0.31673, "runnerGap": 1.809, "coarseFineGap": 7.317, "trackedFineGap": 6.3, "confidence": 8418.121, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4947.0, "procMarginUs": 31673.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 88}, {"frame": 1287, "valid": 1, "bpm": 77.704, "guide": 84.422, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 77.704, "tracked": 84.004, "competition": 0.30411, "runnerGap": 1.809, "coarseFineGap": 6.417, "trackedFineGap": 6.3, "confidence": 12722.42, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4966.0, "procMarginUs": 31632.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 89}, {"frame": 1297, "valid": 1, "bpm": 78.604, "guide": 83.819, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 78.604, "tracked": 84.001, "competition": 0.31025, "runnerGap": 1.809, "coarseFineGap": 5.517, "trackedFineGap": 5.398, "confidence": 11740.497, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4915.0, "procMarginUs": 31726.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 90}, {"frame": 1307, "valid": 1, "bpm": 79.504, "guide": 83.819, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 79.504, "tracked": 83.999, "competition": 0.31256, "runnerGap": 1.809, "coarseFineGap": 4.617, "trackedFineGap": 4.495, "confidence": 12475.189, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4880.0, "procMarginUs": 31738.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 91}, {"frame": 1317, "valid": 1, "bpm": 80.404, "guide": 83.518, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 80.404, "tracked": 84.033, "competition": 0.30278, "runnerGap": 1.809, "coarseFineGap": 3.717, "trackedFineGap": 3.629, "confidence": 12057.53, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4885.0, "procMarginUs": 31788.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 92}, {"frame": 1327, "valid": 1, "bpm": 81.304, "guide": 83.518, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 81.304, "tracked": 83.995, "competition": 0.31698, "runnerGap": 1.809, "coarseFineGap": 2.817, "trackedFineGap": 2.691, "confidence": 10890.099, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4899.0, "procMarginUs": 31744.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 93}, {"frame": 1337, "valid": 1, "bpm": 82.204, "guide": 83.518, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 82.204, "tracked": 84.029, "competition": 0.3033, "runnerGap": 1.809, "coarseFineGap": 1.917, "trackedFineGap": 1.825, "confidence": 10488.853, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4909.0, "procMarginUs": 31712.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 94}, {"frame": 1347, "valid": 1, "bpm": 83.104, "guide": 92.563, "vmeGuide": 93.0, "coarse": 93.166, "runner": 91.357, "fine": 83.104, "tracked": 88.718, "competition": 0.32835, "runnerGap": 1.809, "coarseFineGap": 10.062, "trackedFineGap": 5.614, "confidence": 11927.569, "trackSelected": 0, "stepLimited": 1, "procTimeUs": 5575.0, "procMarginUs": 30929.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 95}, {"frame": 1357, "valid": 1, "bpm": 83.988, "guide": 84.121, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 83.988, "tracked": 83.988, "competition": 0.31378, "runnerGap": 1.809, "coarseFineGap": 0.133, "trackedFineGap": 0.0, "confidence": 11292.373, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5325.0, "procMarginUs": 31237.0, "txWriteUs": 2136.0, "overwrite": 0, "estimateSeq": 96}, {"frame": 1367, "valid": 1, "bpm": 84.006, "guide": 83.819, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 84.006, "tracked": 84.006, "competition": 0.30391, "runnerGap": 1.809, "coarseFineGap": 0.115, "trackedFineGap": 0.0, "confidence": 11250.901, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5040.0, "procMarginUs": 31570.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 97}, {"frame": 1377, "valid": 1, "bpm": 83.988, "guide": 83.518, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 83.988, "tracked": 83.988, "competition": 0.31684, "runnerGap": 1.809, "coarseFineGap": 0.133, "trackedFineGap": 0.0, "confidence": 11658.394, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4916.0, "procMarginUs": 31728.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 98}, {"frame": 1387, "valid": 1, "bpm": 84.006, "guide": 83.819, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 84.006, "tracked": 84.006, "competition": 0.30212, "runnerGap": 1.809, "coarseFineGap": 0.115, "trackedFineGap": 0.0, "confidence": 12131.369, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4895.0, "procMarginUs": 31682.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 99}, {"frame": 1397, "valid": 1, "bpm": 83.988, "guide": 83.518, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 83.988, "tracked": 83.988, "competition": 0.31151, "runnerGap": 1.809, "coarseFineGap": 0.133, "trackedFineGap": 0.0, "confidence": 11378.458, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5683.0, "procMarginUs": 30716.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 100}, {"frame": 1407, "valid": 1, "bpm": 84.006, "guide": 83.216, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 84.006, "tracked": 84.006, "competition": 0.31353, "runnerGap": 1.809, "coarseFineGap": 0.115, "trackedFineGap": 0.0, "confidence": 10047.346, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5219.0, "procMarginUs": 31338.0, "txWriteUs": 2138.0, "overwrite": 0, "estimateSeq": 101}, {"frame": 1417, "valid": 1, "bpm": 84.024, "guide": 82.613, "vmeGuide": 84.0, "coarse": 84.121, "runner": 82.312, "fine": 84.024, "tracked": 84.024, "competition": 0.30294, "runnerGap": 1.809, "coarseFineGap": 0.097, "trackedFineGap": 0.0, "confidence": 9955.897, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5038.0, "procMarginUs": 31452.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 102}, {"frame": 1427, "valid": 1, "bpm": 83.124, "guide": 82.01, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 83.124, "tracked": 80.974, "competition": 0.20078, "runnerGap": 1.809, "coarseFineGap": 2.018, "trackedFineGap": 2.15, "confidence": 10971.106, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4914.0, "procMarginUs": 31777.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 103}, {"frame": 1437, "valid": 1, "bpm": 82.224, "guide": 82.312, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 82.224, "tracked": 81.013, "competition": 0.20903, "runnerGap": 1.809, "coarseFineGap": 1.118, "trackedFineGap": 1.211, "confidence": 10575.664, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4973.0, "procMarginUs": 31727.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 104}, {"frame": 1447, "valid": 1, "bpm": 81.324, "guide": 82.01, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 81.324, "tracked": 81.015, "competition": 0.2056, "runnerGap": 1.809, "coarseFineGap": 0.218, "trackedFineGap": 0.309, "confidence": 11541.752, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4935.0, "procMarginUs": 31696.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 105}, {"frame": 1457, "valid": 1, "bpm": 80.981, "guide": 82.312, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 80.981, "tracked": 80.981, "competition": 0.20201, "runnerGap": 1.809, "coarseFineGap": 0.124, "trackedFineGap": 0.0, "confidence": 10968.478, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4963.0, "procMarginUs": 31633.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 106}, {"frame": 1467, "valid": 1, "bpm": 81.035, "guide": 82.01, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 81.035, "tracked": 81.035, "competition": 0.21095, "runnerGap": 1.809, "coarseFineGap": 0.07, "trackedFineGap": 0.0, "confidence": 12472.768, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5005.0, "procMarginUs": 31567.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 107}, {"frame": 1477, "valid": 1, "bpm": 80.981, "guide": 81.709, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 80.981, "tracked": 80.981, "competition": 0.20406, "runnerGap": 1.809, "coarseFineGap": 0.124, "trackedFineGap": 0.0, "confidence": 12260.615, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 4925.0, "procMarginUs": 31676.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 108}, {"frame": 1487, "valid": 1, "bpm": 80.081, "guide": 73.266, "vmeGuide": 72.0, "coarse": 72.06, "runner": 73.869, "fine": 80.081, "tracked": 73.781, "competition": 0.22403, "runnerGap": 1.809, "coarseFineGap": 8.021, "trackedFineGap": 6.3, "confidence": 10738.405, "trackSelected": 0, "stepLimited": 1, "procTimeUs": 4952.0, "procMarginUs": 31703.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 109}, {"frame": 1497, "valid": 1, "bpm": 80.981, "guide": 81.709, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 80.981, "tracked": 81.001, "competition": 0.21086, "runnerGap": 1.809, "coarseFineGap": 0.124, "trackedFineGap": 0.02, "confidence": 12357.226, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 4929.0, "procMarginUs": 31744.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 110}, {"frame": 1507, "valid": 1, "bpm": 80.081, "guide": 73.266, "vmeGuide": 72.0, "coarse": 72.06, "runner": 73.869, "fine": 80.081, "tracked": 73.781, "competition": 0.22798, "runnerGap": 1.809, "coarseFineGap": 8.021, "trackedFineGap": 6.3, "confidence": 11949.01, "trackSelected": 0, "stepLimited": 1, "procTimeUs": 5591.0, "procMarginUs": 31053.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 111}, {"frame": 1517, "valid": 1, "bpm": 80.981, "guide": 82.312, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 80.981, "tracked": 81.001, "competition": 0.205, "runnerGap": 1.809, "coarseFineGap": 0.124, "trackedFineGap": 0.02, "confidence": 10072.357, "trackSelected": 1, "stepLimited": 1, "procTimeUs": 5769.0, "procMarginUs": 30603.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 112}, {"frame": 1527, "valid": 1, "bpm": 81.035, "guide": 82.312, "vmeGuide": 81.0, "coarse": 81.106, "runner": 82.915, "fine": 81.035, "tracked": 81.035, "competition": 0.21053, "runnerGap": 1.809, "coarseFineGap": 0.07, "trackedFineGap": 0.0, "confidence": 9818.078, "trackSelected": 1, "stepLimited": 0, "procTimeUs": 5301.0, "procMarginUs": 31308.0, "txWriteUs": 2131.0, "overwrite": 0, "estimateSeq": 113}];
+
+    function drawChart(canvasId, series, options) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      const pad = { left: 56, right: 18, top: 16, bottom: 34 };
+      const plotW = width - pad.left - pad.right;
+      const plotH = height - pad.top - pad.bottom;
+      const frames = rows.map(r => r.frame);
+      const xMin = Math.min(...frames);
+      const xMax = Math.max(...frames);
+
+      let yMin = options.yMin;
+      let yMax = options.yMax;
+      if (yMin === null || yMax === null) {
+        const vals = [];
+        for (const s of series) {
+          for (const row of rows) {
+            const value = s.value(row);
+            if (value !== null && Number.isFinite(value)) {
+              vals.push(value);
+            }
+          }
+        }
+        yMin = yMin ?? Math.min(...vals);
+        yMax = yMax ?? Math.max(...vals);
+        if (yMin === yMax) {
+          yMax = yMin + 1;
+        }
+      }
+      const yPad = (yMax - yMin) * 0.08;
+      yMin -= yPad;
+      yMax += yPad;
+
+      function xOf(frame) {
+        return pad.left + ((frame - xMin) / (xMax - xMin || 1)) * plotW;
+      }
+      function yOf(value) {
+        return pad.top + plotH - ((value - yMin) / (yMax - yMin || 1)) * plotH;
+      }
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#fffefb';
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.strokeStyle = '#e6ddcf';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i += 1) {
+        const y = pad.top + (plotH * i) / 4;
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(width - pad.right, y);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = '#b8ae9d';
+      ctx.beginPath();
+      ctx.moveTo(pad.left, pad.top);
+      ctx.lineTo(pad.left, height - pad.bottom);
+      ctx.lineTo(width - pad.right, height - pad.bottom);
+      ctx.stroke();
+
+      ctx.fillStyle = '#5e696d';
+      ctx.font = '12px Segoe UI';
+      for (let i = 0; i < 5; i += 1) {
+        const value = yMax - ((yMax - yMin) * i) / 4;
+        const y = pad.top + (plotH * i) / 4;
+        ctx.fillText(value.toFixed(options.yDigits ?? 1), 6, y + 4);
+      }
+
+      const ticks = 8;
+      for (let i = 0; i <= ticks; i += 1) {
+        const frame = Math.round(xMin + ((xMax - xMin) * i) / ticks);
+        const x = xOf(frame);
+        ctx.fillText(String(frame), x - 12, height - 10);
+      }
+
+      for (const s of series) {
+        ctx.strokeStyle = s.color;
+        ctx.fillStyle = s.color;
+        ctx.lineWidth = s.width || 2;
+        ctx.beginPath();
+        let started = false;
+        for (const row of rows) {
+          const value = s.value(row);
+          if (value === null || !Number.isFinite(value)) {
+            started = false;
+            continue;
+          }
+          const x = xOf(row.frame);
+          const y = yOf(value);
+          if (!started) {
+            ctx.moveTo(x, y);
+            started = true;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        if (!s.pointsOnly) {
+          ctx.stroke();
+        }
+      }
+    }
+
+    drawChart('chart-bpm', [
+      { color: '#b5482f', value: row => row.valid ? row.bpm : null },
+      { color: '#1f7a8c', value: row => row.coarse },
+      { color: '#7a9e1f', value: row => row.fine },
+      { color: '#7d5ba6', value: row => row.tracked > 0 ? row.tracked : null },
+      { color: '#cf6a32', value: row => row.runner > 0 ? row.runner : null },
+    ], { yMin: null, yMax: null, yDigits: 1 });
+
+    drawChart('chart-runner', [
+      { color: '#b5482f', value: row => row.valid ? row.bpm : null },
+      { color: '#1f7a8c', value: row => row.coarse },
+      { color: '#cf6a32', value: row => row.runner > 0 ? row.runner : null },
+      { color: '#7d5ba6', value: row => row.tracked > 0 ? row.tracked : null },
+    ], { yMin: null, yMax: null, yDigits: 1 });
+
+    drawChart('chart-risk', [
+      { color: '#b5482f', value: row => row.competition },
+      { color: '#1f7a8c', value: row => row.coarseFineGap },
+      { color: '#7d5ba6', value: row => row.trackedFineGap },
+      { color: '#cf6a32', value: row => row.stepLimited ? 1 : 0 },
+      { color: '#7a9e1f', value: row => row.trackSelected ? 0.85 : 0 },
+    ], { yMin: 0, yMax: null, yDigits: 2 });
+
+    drawChart('chart-transport', [
+      { color: '#1f7a8c', value: row => row.procTimeUs },
+      { color: '#7a9e1f', value: row => row.procMarginUs },
+      { color: '#b5482f', value: row => row.txWriteUs },
+      { color: '#7d5ba6', value: row => row.estimateSeq },
+      { color: '#cf6a32', value: row => row.overwrite },
+    ], { yMin: 0, yMax: null, yDigits: 0 });
+  </script>
+</body>
+</html>

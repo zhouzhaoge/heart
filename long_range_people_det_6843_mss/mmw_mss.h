@@ -332,6 +332,9 @@ extern "C"
         /*! @brief   ObjectDetection DPC related dpmTask */
         Task_Handle objDetDpmTask;
 
+        /*! @brief   UART TX task for heart-rate output */
+        Task_Handle uartTxTask;
+
         /*! @brief   Demo init task */
         Task_Handle initTask;
     } MmwDemo_taskHandles;
@@ -421,6 +424,9 @@ extern "C"
 
         /*! @brief   Semaphore handle to signal DPM ioctl from DPM report function. */
         Semaphore_Handle DPMioctlSemHandle;
+
+        /*! @brief   Semaphore handle to signal pending heart-rate UART transmission. */
+        Semaphore_Handle uartTxSemHandle;
 
         /*! @brief    Sensor state */
         MmwDemo_SensorState sensorState;

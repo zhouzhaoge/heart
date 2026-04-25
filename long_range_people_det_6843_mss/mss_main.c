@@ -621,6 +621,7 @@
 #define MMWDEMO_CLI_TASK_PRIORITY            3
 #define MMWDEMO_DPC_OBJDET_DPM_TASK_PRIORITY 4
 #define MMWDEMO_MMWAVE_CTRL_TASK_PRIORITY    5
+#define MMWDEMO_UART_TX_TASK_PRIORITY        2
 
 #if (MMWDEMO_CLI_TASK_PRIORITY >= MMWDEMO_DPC_OBJDET_DPM_TASK_PRIORITY)
 #error CLI task priority must be < Object Detection DPM task priority
@@ -651,9 +652,12 @@
 #define HEART_RATE_VME_ALPHA             100.0f
 #define HEART_RATE_TARGET_SAMPLE_RATE_HZ 10.0f
 #define HEART_RATE_ESTIMATE_STEP_SECONDS 0.5f
-#define HEART_RATE_TRACK_HALF_SPAN_HZ    0.12f
-#define HEART_RATE_TRACK_KEEP_RATIO      0.55f
-#define HEART_RATE_MAX_STEP_HZ           0.015f
+#define HEART_RATE_TRACK_HALF_SPAN_HZ    0.08f
+#define HEART_RATE_TRACK_KEEP_RATIO      0.75f
+#define HEART_RATE_MAX_STEP_HZ           0.010f
+#define HEART_RATE_SWITCH_GUARD_HZ       0.05f
+#define HEART_RATE_SWITCH_CONFIRM_TOL_HZ 0.03f
+#define HEART_RATE_SWITCH_CONFIRM_COUNT  4U
 #define HEART_RATE_TX_CHANGE_EPS_HZ      1.0e-4f
 #define HEART_RATE_UART_HR_ONLY          1U
 /* DSS frameStartTimeStamp is reported in C674x cycles on xWR6843. */
@@ -693,9 +697,11 @@ typedef struct HeartRateMssCtx_t
     float    slowTimeAccumRe;
     float    slowTimeAccumIm;
     float    trackedHeartRateHz;
+    float    pendingSwitchHeartRateHz;
     float    lastTxHeartRateHz;
     uint32_t prevFrameStartTimeStamp;
     uint16_t trackedHeartRateValid;
+    uint16_t pendingSwitchCount;
     uint16_t outputDirty;
     uint16_t hasSentOutput;
     uint16_t lastTxValid;
@@ -724,6 +730,20 @@ typedef struct HeartRateScratch_t
 } HeartRateScratch;
 
 static HeartRateScratch gHeartRateScratch;
+
+typedef struct HeartRateTxSnapshot_t
+{
+    uint32_t         packetLen;
+    uint32_t         frameNumber;
+    uint16_t         subFrameIdx;
+    HeartRateOutput  output;
+    HeartRateDebugOutput debug;
+} HeartRateTxSnapshot;
+
+static HeartRateTxSnapshot gHeartRateTxSnapshot;
+static uint8_t             gHeartRateTxPacket[MMWDEMO_OUTPUT_MSG_SEGMENT_LEN * 8U];
+static volatile uint32_t   gHeartRateEstimateSeq = 0U;
+static volatile uint32_t   gHeartRateTxOverwriteCount = 0U;
 
 #ifndef TRACKERPROC_ON_DSP
 DPIF_PointCloudCartesian objOutCollect[TOTAL_NUM_POINT_CONCAT];
@@ -832,9 +852,6 @@ static void HeartRate_resetCtx(HeartRateMssCtx *ctx)
     ctx->output.selectedRangeBin = 0xFFFFU;
     ctx->output.sampleRateHz     = sampleRateHz;
     ctx->output.windowLength     = windowLength;
-    ctx->debugOutput.selectedRangeBin     = 0xFFFFU;
-    ctx->debugOutput.bestRangeBin         = 0xFFFFU;
-    ctx->debugOutput.windowLength         = windowLength;
 }
 
 static void HeartRate_pushSlowTimeSample(HeartRateMssCtx *ctx, float sampleRe, float sampleIm)
@@ -1304,7 +1321,6 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
     float    b2;
     float    a1;
     float    a2;
-    float    guidePeakMag;
     float    coarsePeakMag;
     float    finePeakMag;
     float    runnerUpPeakMag;
@@ -1322,6 +1338,8 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
     float    fineEnd;
     float    signalPower;
     float    vmeLastRelErr;
+    float    candidateFreq;
+    float    candidatePeakMag;
     uint16_t outputChanged;
     uint16_t vmeIterations;
     uint16_t trackSelected;
@@ -1331,27 +1349,31 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
     if ((ctx->sampleCount < length) || (length == 0U) || (ctx->sampleRateHz <= 0.0f))
     {
         ctx->output.valid = 0U;
-        ctx->debugOutput.valid = 0U;
-        ctx->debugOutput.samplePowerMean = 0.0f;
-        ctx->debugOutput.powerThreshold  = 0.0f;
         ctx->debugOutput.guideFreq       = 0.0f;
         ctx->debugOutput.vmeGuideFreq    = 0.0f;
         ctx->debugOutput.coarseFreq      = 0.0f;
         ctx->debugOutput.runnerUpFreq    = 0.0f;
         ctx->debugOutput.fineFreq        = 0.0f;
         ctx->debugOutput.trackedFreq     = 0.0f;
-        ctx->debugOutput.guidePeakMag    = 0.0f;
         ctx->debugOutput.coarsePeakMag   = 0.0f;
         ctx->debugOutput.runnerUpPeakMag = 0.0f;
         ctx->debugOutput.finePeakMag     = 0.0f;
         ctx->debugOutput.trackedPeakMag  = 0.0f;
         ctx->debugOutput.signalPower     = 0.0f;
-        ctx->debugOutput.mtiAlpha        = 0.0f;
-        ctx->debugOutput.vmeAlpha        = HEART_RATE_VME_ALPHA;
+        ctx->debugOutput.competitionRatio = 0.0f;
+        ctx->debugOutput.guideVmeGapHz    = 0.0f;
+        ctx->debugOutput.coarseFineGapHz  = 0.0f;
+        ctx->debugOutput.trackedFineGapHz = 0.0f;
         ctx->debugOutput.vmeLastRelErr   = 0.0f;
+        ctx->debugOutput.estimateSeq     = 0U;
+        ctx->debugOutput.interFrameProcTimeUsec   = 0U;
+        ctx->debugOutput.interFrameProcMarginUsec = 0U;
+        ctx->debugOutput.txWriteTimeUsec          = 0U;
+        ctx->debugOutput.txOverwriteCount         = gHeartRateTxOverwriteCount;
         ctx->debugOutput.vmeIterations   = 0U;
         ctx->debugOutput.trackSelected   = 0U;
         ctx->debugOutput.stepLimited     = 0U;
+        ctx->debugOutput.valid           = 0U;
         return;
     }
 
@@ -1364,6 +1386,8 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
     vmeIterations   = 0U;
     trackSelected   = 0U;
     stepLimited     = 0U;
+    candidateFreq   = 0.0f;
+    candidatePeakMag = 0.0f;
 
     if (ctx->isFilled == 1U)
     {
@@ -1453,7 +1477,7 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
                                              HEART_RATE_GUIDE_FREQ_MIN_HZ,
                                              HEART_RATE_GUIDE_FILTER_MAX_HZ,
                                              length,
-                                             &guidePeakMag);
+                                             NULL);
     guideFreq = coarseFreq;
 
     vmeGuideFreq = HeartRate_runVME(gHeartRateScratch.phaseRaw,
@@ -1494,6 +1518,8 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
                                            fineEnd,
                                            length,
                                            &finePeakMag);
+    candidateFreq    = fineFreq;
+    candidatePeakMag = finePeakMag;
 
     if (ctx->trackedHeartRateValid != 0U)
     {
@@ -1522,6 +1548,39 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
                 finePeakMag = trackedPeakMag;
                 trackSelected = 1U;
             }
+        }
+        candidateFreq    = fineFreq;
+        candidatePeakMag = finePeakMag;
+
+        /* Require persistence before allowing a cross-family switch far away from the tracked band. */
+        if (fabsf(candidateFreq - ctx->trackedHeartRateHz) > HEART_RATE_SWITCH_GUARD_HZ)
+        {
+            if ((ctx->pendingSwitchCount == 0U) ||
+                (fabsf(candidateFreq - ctx->pendingSwitchHeartRateHz) > HEART_RATE_SWITCH_CONFIRM_TOL_HZ))
+            {
+                ctx->pendingSwitchHeartRateHz = candidateFreq;
+                ctx->pendingSwitchCount       = 1U;
+            }
+            else if (ctx->pendingSwitchCount < 0xFFFFU)
+            {
+                ctx->pendingSwitchCount++;
+            }
+
+            if (ctx->pendingSwitchCount < HEART_RATE_SWITCH_CONFIRM_COUNT)
+            {
+                fineFreq    = ctx->trackedHeartRateHz;
+                finePeakMag = (trackedPeakMag > 0.0f) ? trackedPeakMag : candidatePeakMag;
+            }
+            else
+            {
+                ctx->pendingSwitchCount       = 0U;
+                ctx->pendingSwitchHeartRateHz = candidateFreq;
+            }
+        }
+        else
+        {
+            ctx->pendingSwitchCount       = 0U;
+            ctx->pendingSwitchHeartRateHz = candidateFreq;
         }
 
         if (fineFreq > (ctx->trackedHeartRateHz + HEART_RATE_MAX_STEP_HZ))
@@ -1553,41 +1612,36 @@ static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
         ctx->trackedHeartRateHz    = fineFreq;
         ctx->trackedHeartRateValid = 1U;
     }
-    ctx->debugOutput.samplePowerMean = samplePowerMean;
-    ctx->debugOutput.powerThreshold  = powerThreshold;
     ctx->debugOutput.guideFreq       = guideFreq;
     ctx->debugOutput.vmeGuideFreq    = vmeGuideFreq;
     ctx->debugOutput.coarseFreq      = coarseFreq;
     ctx->debugOutput.runnerUpFreq    = runnerUpFreq;
     ctx->debugOutput.fineFreq        = fineFreq;
     ctx->debugOutput.trackedFreq     = trackedFreq;
-    ctx->debugOutput.guidePeakMag    = guidePeakMag;
     ctx->debugOutput.coarsePeakMag   = coarsePeakMag;
     ctx->debugOutput.runnerUpPeakMag = runnerUpPeakMag;
     ctx->debugOutput.finePeakMag     = finePeakMag;
     ctx->debugOutput.trackedPeakMag  = trackedPeakMag;
     ctx->debugOutput.signalPower     = signalPower;
-    ctx->debugOutput.vmeAlpha        = HEART_RATE_VME_ALPHA;
+    if (coarsePeakMag > 0.0f)
+    {
+        ctx->debugOutput.competitionRatio = runnerUpPeakMag / coarsePeakMag;
+    }
+    else
+    {
+        ctx->debugOutput.competitionRatio = 0.0f;
+    }
+    ctx->debugOutput.guideVmeGapHz    = fabsf(guideFreq - vmeGuideFreq);
+    ctx->debugOutput.coarseFineGapHz  = fabsf(coarseFreq - fineFreq);
+    ctx->debugOutput.trackedFineGapHz = fabsf(trackedFreq - fineFreq);
     ctx->debugOutput.vmeLastRelErr   = vmeLastRelErr;
+    ctx->debugOutput.estimateSeq     = ++gHeartRateEstimateSeq;
     ctx->debugOutput.vmeIterations   = vmeIterations;
     ctx->debugOutput.trackSelected   = trackSelected;
     ctx->debugOutput.stepLimited     = stepLimited;
     ctx->debugOutput.valid           = ctx->output.valid;
 
-    outputChanged = 0U;
-    if (ctx->hasSentOutput == 0U)
-    {
-        outputChanged = 1U;
-    }
-    else if (ctx->output.valid != ctx->lastTxValid)
-    {
-        outputChanged = 1U;
-    }
-    else if ((ctx->output.valid != 0U) &&
-             (fabsf(ctx->output.heartRateHz - ctx->lastTxHeartRateHz) > HEART_RATE_TX_CHANGE_EPS_HZ))
-    {
-        outputChanged = 1U;
-    }
+    outputChanged = 1U;
     ctx->outputDirty = outputChanged;
 }
 
@@ -1598,7 +1652,6 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
     uint16_t numRangeBins;
     uint16_t searchMaxBin;
     uint16_t bestBin;
-    uint16_t prevSelectedRangeBin;
     uint16_t slowTimeSamplePushed;
     uint8_t  wasFilled;
     uint32_t deltaCycles;
@@ -1610,7 +1663,6 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
     float    imVal;
     float    mtiRe;
     float    mtiIm;
-    float    bestScore;
     float    selectedRe;
     float    selectedIm;
 
@@ -1681,14 +1733,11 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
     {
         alpha = 1.0f;
     }
-    bestScore  = 0.0f;
     bestBin    = HEART_RATE_RANGE_BIN_SKIP;
     selectedRe = 0.0f;
     selectedIm = 0.0f;
     slowTimeSamplePushed = 0U;
     wasFilled  = ctx->isFilled;
-    prevSelectedRangeBin = ctx->selectedRangeBin;
-
     searchMaxBin = numRangeBins;
     if ((ctx->rangeStep > 0.0f) &&
         (((float)searchMaxBin * ctx->rangeStep) > 2.5f))
@@ -1718,9 +1767,9 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
 
         if ((rangeIdx >= HEART_RATE_RANGE_BIN_SKIP) &&
             (rangeIdx < searchMaxBin) &&
-            (ctx->energyAccum[rangeIdx] > bestScore))
+            ((bestBin == HEART_RATE_RANGE_BIN_SKIP) ||
+             (ctx->energyAccum[rangeIdx] > ctx->energyAccum[bestBin])))
         {
-            bestScore = ctx->energyAccum[rangeIdx];
             bestBin   = rangeIdx;
             selectedRe = mtiRe;
             selectedIm = mtiIm;
@@ -1748,6 +1797,8 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
         ctx->slowTimeAccumIm  = 0.0f;
         ctx->output.valid     = 0U;
         ctx->trackedHeartRateValid = 0U;
+        ctx->pendingSwitchCount = 0U;
+        ctx->pendingSwitchHeartRateHz = 0.0f;
         ctx->outputDirty      = 1U;
     }
 
@@ -1785,26 +1836,6 @@ static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
     {
         ctx->output.rangeMeters = 0.0f;
     }
-
-    ctx->debugOutput.mtiAlpha            = alpha;
-    ctx->debugOutput.bestScore           = bestScore;
-    ctx->debugOutput.selectedRangeBin    = ctx->selectedRangeBin;
-    ctx->debugOutput.windowLength        = ctx->windowLength;
-    ctx->debugOutput.sampleCount         = ctx->sampleCount;
-    ctx->debugOutput.isFilled            = ctx->isFilled;
-    ctx->debugOutput.gateChanged         = (uint16_t)(prevSelectedRangeBin != ctx->selectedRangeBin);
-
-    if (ctx->selectedRangeBin < numRangeBins)
-    {
-        ctx->debugOutput.selectedScore       = ctx->energyAccum[ctx->selectedRangeBin];
-        ctx->debugOutput.selectedRangeMeters = ((float)ctx->selectedRangeBin) * ctx->rangeStep;
-    }
-    else
-    {
-        ctx->debugOutput.selectedScore       = 0.0f;
-        ctx->debugOutput.selectedRangeMeters = 0.0f;
-    }
-    ctx->debugOutput.bestRangeBin = bestBin;
 
     if (slowTimeSamplePushed != 0U)
     {
@@ -1855,6 +1886,14 @@ static void    MmwDemo_DPC_ObjectDetection_reportFxn(
 
 void TrackerDemo_transmitProcessedOutput(UART_Handle                        uartHandle,
                                          DPC_ObjectDetection_ExecuteResult *result);
+static uint32_t HeartRate_buildUartPacket(const HeartRateTxSnapshot *snapshot,
+                                          uint8_t                   *packetBuf,
+                                          uint32_t                   packetBufSize);
+static void     HeartRate_submitUartSnapshot(uint32_t frameNumber,
+                                             uint8_t subFrameIdx,
+                                             const HeartRateOutput *output,
+                                             const HeartRateDebugOutput *debugOutput);
+static void     HeartRate_uartTxTask(UArg arg0, UArg arg1);
 
 static void    MmwDemo_measurementResultOutput(DPU_AoAProc_compRxChannelBiasCfg *compRxChanCfg);
 static int32_t MmwDemo_DPM_ioctl_blocking(
@@ -2766,266 +2805,185 @@ static void MmwDemo_transmitProcessedOutput
 void TrackerDemo_transmitProcessedOutput(UART_Handle                        uartHandle,
                                          DPC_ObjectDetection_ExecuteResult *result)
 {
-    HeartRateMssCtx          *heartCtx;
-
-    uint32_t                  packetLen;
-    uint32_t                  tlvIdx = 0;
-    uint32_t                  numPaddingBytes;
-    uint8_t                   padding[MMWDEMO_OUTPUT_MSG_SEGMENT_LEN];
-    MmwDemo_output_message_tl tl[10];
-
-    DPIF_PointCloudSpherical  *objOutSph;
-    DPIF_PointCloudSideInfo   *objOutSideInfo;
+    int32_t            errCode;
+    HeartRateMssCtx   *heartCtx;
     DPC_ObjectDetection_Stats *stats;
-    trackerProc_Target        *tList;
-    trackerProc_TargetIndex   *tIndex;
-    HeartRateOutput            heartRateOutput;
-    HeartRateDebugOutput       heartRateDebugOutput;
-    int32_t                    errCode;
 
-    MmwDemo_output_message_header outputMessage;
+    (void)uartHandle;
 
-    /* Clear message header */
+    stats = (DPC_ObjectDetection_Stats *)SOC_translateAddress((uint32_t)result->stats,
+                                                              SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
+                                                              &errCode);
+    DebugP_assert((uint32_t)stats != SOC_TRANSLATEADDR_INVALID);
+
     heartCtx = &gHeartRateCtx[result->subFrameIdx];
     if ((HEART_RATE_UART_HR_ONLY != 0U) &&
-        (heartCtx->outputDirty == 0U) &&
-        (heartCtx->hasSentOutput != 0U))
+        (heartCtx->outputDirty == 0U))
     {
         return;
     }
 
-    /* Clear message header */
-    memset((void *)&outputMessage, 0, sizeof(MmwDemo_output_message_header));
-    /* Header: */
-    outputMessage.platform     = 0xA6843;
-    outputMessage.magicWord[0] = 0x0102;
-    outputMessage.magicWord[1] = 0x0304;
-    outputMessage.magicWord[2] = 0x0506;
-    outputMessage.magicWord[3] = 0x0708;
-    outputMessage.version      = MMWAVE_SDK_VERSION_BUILD | // DEBUG_VERSION
-        (MMWAVE_SDK_VERSION_BUGFIX << 8) |
-        (MMWAVE_SDK_VERSION_MINOR << 16) |
-        (MMWAVE_SDK_VERSION_MAJOR << 24);
-
-    /******************************************************************
-       Send out data that is enabled, Since processing results are from DSP,
-       address translation is needed for buffer pointers
-    *******************************************************************/
+    if (HEART_RATE_UART_HR_ONLY != 0U)
     {
+        HeartRate_submitUartSnapshot(stats->frameStartIntCounter,
+                                     result->subFrameIdx,
+                                     &heartCtx->output,
+                                     &heartCtx->debugOutput);
+    }
+}
 
+static uint32_t HeartRate_buildUartPacket(const HeartRateTxSnapshot *snapshot,
+                                          uint8_t                   *packetBuf,
+                                          uint32_t                   packetBufSize)
+{
+    MmwDemo_output_message_header header;
+    MmwDemo_output_message_tl     tlv;
+    uint32_t                      packetLen;
+    uint32_t                      paddedLen;
+    uint32_t                      offset;
+    uint32_t                      numPaddingBytes;
 
-        stats = (DPC_ObjectDetection_Stats *)SOC_translateAddress((uint32_t)result->stats,
-                                                                  SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
-                                                                  &errCode);
-        DebugP_assert((uint32_t)stats != SOC_TRANSLATEADDR_INVALID);
-
-#if (HEART_RATE_UART_HR_ONLY == 0U) && defined(TRACKERPROC_ON_DSP)
-        objOutSph = (DPIF_PointCloudSpherical *)SOC_translateAddress((uint32_t)result->objOutSph,
-                                                                     SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
-                                                                     &errCode);
-        DebugP_assert((uint32_t)objOutSph != SOC_TRANSLATEADDR_INVALID);
-
-
-        objOutSideInfo = (DPIF_PointCloudSideInfo *)SOC_translateAddress((uint32_t)result->objOutSideInfo,
-                                                                         SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
-                                                                         &errCode);
-        DebugP_assert((uint32_t)objOutSideInfo != SOC_TRANSLATEADDR_INVALID);
-
-        tList = (trackerProc_Target *)SOC_translateAddress((uint32_t)result->tList,
-                                                           SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
-                                                           &errCode);
-        DebugP_assert((uint32_t)tList != SOC_TRANSLATEADDR_INVALID);
-
-
-        tIndex = (trackerProc_TargetIndex *)SOC_translateAddress((uint32_t)result->tIndex,
-                                                                 SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
-                                                                 &errCode);
-        DebugP_assert((uint32_t)tIndex != SOC_TRANSLATEADDR_INVALID);
-#elif (HEART_RATE_UART_HR_ONLY == 0U)
-        objOutSph      = (DPIF_PointCloudSpherical *)objOutSphCollect;
-        objOutSideInfo = (DPIF_PointCloudSideInfo *)objOutSideInfoCollect;
-        tList          = (trackerProc_Target *)(result->tList);
-        tIndex         = (trackerProc_TargetIndex *)(result->tIndex);
-#else
-        objOutSph      = NULL;
-        objOutSideInfo = NULL;
-        tList          = NULL;
-        tIndex         = NULL;
-#endif
+    if ((snapshot == NULL) || (packetBuf == NULL))
+    {
+        return 0U;
     }
 
-
-    outputMessage.subFrameNumber = result->subFrameIdx;
-
-    /* Start: Tracker output code */
-    outputMessage.frameNumber = stats->frameStartIntCounter;
-
-    outputMessage.timeCpuCycles  = Cycleprofiler_getTimeStamp();
-    outputMessage.numTLVs        = 0;
-    outputMessage.numDetectedObj = (HEART_RATE_UART_HR_ONLY == 0U) ? result->numObjOut : 0U;
-    heartRateOutput              = heartCtx->output;
-    heartRateDebugOutput         = heartCtx->debugOutput;
-
-    packetLen = sizeof(MmwDemo_output_message_header);
-    if (result->numObjOut > 250)
+    packetLen = sizeof(MmwDemo_output_message_header) +
+                (2U * sizeof(MmwDemo_output_message_tl)) +
+                sizeof(HeartRateOutput) +
+                sizeof(HeartRateDebugOutput);
+    paddedLen = MMWDEMO_OUTPUT_MSG_SEGMENT_LEN *
+                ((packetLen + (MMWDEMO_OUTPUT_MSG_SEGMENT_LEN - 1U)) / MMWDEMO_OUTPUT_MSG_SEGMENT_LEN);
+    if (paddedLen > packetBufSize)
     {
-        result->numObjOut = 250;
-    }
-    /* Point cloud and side info */
-    if ((HEART_RATE_UART_HR_ONLY == 0U) && (result->numObjOut > 0))
-    {
-        /* Point cloud */
-        tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_SPHERICAL_POINTS;
-        tl[tlvIdx].length = sizeof(DPIF_PointCloudSpherical) * result->numObjOut;
-        packetLen += sizeof(MmwDemo_output_message_tl) + tl[tlvIdx].length;
-        outputMessage.numTLVs += 1;
-        tlvIdx++;
-
-        /* Side info */
-        tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_DETECTED_POINTS_SIDE_INFO;
-        tl[tlvIdx].length = sizeof(DPIF_PointCloudSideInfo) * result->numObjOut;
-        packetLen += sizeof(MmwDemo_output_message_tl) + tl[tlvIdx].length;
-        outputMessage.numTLVs += 1;
-        tlvIdx++;
+        return 0U;
     }
 
-    if ((HEART_RATE_UART_HR_ONLY == 0U) && result->numTargets)
-    {
+    memset((void *)&header, 0, sizeof(header));
+    header.platform         = 0xA6843;
+    header.magicWord[0]     = 0x0102;
+    header.magicWord[1]     = 0x0304;
+    header.magicWord[2]     = 0x0506;
+    header.magicWord[3]     = 0x0708;
+    header.version          = MMWAVE_SDK_VERSION_BUILD |
+                              (MMWAVE_SDK_VERSION_BUGFIX << 8) |
+                              (MMWAVE_SDK_VERSION_MINOR << 16) |
+                              (MMWAVE_SDK_VERSION_MAJOR << 24);
+    header.totalPacketLen   = paddedLen;
+    header.frameNumber      = snapshot->frameNumber;
+    header.timeCpuCycles    = Cycleprofiler_getTimeStamp();
+    header.numDetectedObj   = 0U;
+    header.numTLVs          = 2U;
+    header.subFrameNumber   = snapshot->subFrameIdx;
 
-        tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_TRACKERPROC_3D_TARGET_LIST;
-        tl[tlvIdx].length = sizeof(trackerProc_Target) * result->numTargets;
-        packetLen += sizeof(MmwDemo_output_message_tl) + tl[tlvIdx].length;
-        outputMessage.numTLVs += 1;
-        tlvIdx++;
+    offset = 0U;
+    memcpy((void *)&packetBuf[offset], (void *)&header, sizeof(header));
+    offset += sizeof(header);
+
+    tlv.type   = MMWDEMO_OUTPUT_MSG_HEART_RATE;
+    tlv.length = sizeof(HeartRateOutput);
+    memcpy((void *)&packetBuf[offset], (void *)&tlv, sizeof(tlv));
+    offset += sizeof(tlv);
+    memcpy((void *)&packetBuf[offset], (void *)&snapshot->output, sizeof(HeartRateOutput));
+    offset += sizeof(HeartRateOutput);
+
+    tlv.type   = MMWDEMO_OUTPUT_MSG_HEART_RATE_DEBUG;
+    tlv.length = sizeof(HeartRateDebugOutput);
+    memcpy((void *)&packetBuf[offset], (void *)&tlv, sizeof(tlv));
+    offset += sizeof(tlv);
+    memcpy((void *)&packetBuf[offset], (void *)&snapshot->debug, sizeof(HeartRateDebugOutput));
+    offset += sizeof(HeartRateDebugOutput);
+
+    numPaddingBytes = paddedLen - offset;
+    if (numPaddingBytes > 0U)
+    {
+        memset((void *)&packetBuf[offset], 0, numPaddingBytes);
     }
 
-    if ((HEART_RATE_UART_HR_ONLY == 0U) && result->numIndices)
-    {
+    return paddedLen;
+}
 
-        tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_TRACKERPROC_TARGET_INDEX;
-        tl[tlvIdx].length = sizeof(trackerProc_TargetIndex) * result->numIndices;
-        packetLen += sizeof(MmwDemo_output_message_tl) + tl[tlvIdx].length;
-        outputMessage.numTLVs += 1;
-        tlvIdx++;
+static void HeartRate_submitUartSnapshot(uint32_t frameNumber,
+                                         uint8_t subFrameIdx,
+                                         const HeartRateOutput *output,
+                                         const HeartRateDebugOutput *debugOutput)
+{
+    UInt key;
+    HeartRateTxSnapshot localSnapshot;
+
+    if ((output == NULL) || (debugOutput == NULL))
+    {
+        return;
     }
 
-    tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_HEART_RATE;
-    tl[tlvIdx].length = sizeof(HeartRateOutput);
-    packetLen += sizeof(MmwDemo_output_message_tl) + tl[tlvIdx].length;
-    outputMessage.numTLVs += 1;
-    tlvIdx++;
+    localSnapshot.subFrameIdx = subFrameIdx;
+    localSnapshot.output      = *output;
+    localSnapshot.debug       = *debugOutput;
+    localSnapshot.frameNumber = frameNumber;
+    localSnapshot.debug.interFrameProcTimeUsec =
+        gMmwMssMCB.subFrameStats[subFrameIdx].outputStats.interFrameProcessingTime;
+    localSnapshot.debug.interFrameProcMarginUsec =
+        gMmwMssMCB.subFrameStats[subFrameIdx].outputStats.interFrameProcessingMargin;
+    localSnapshot.debug.txWriteTimeUsec  = gHeartRateCtx[subFrameIdx].debugOutput.txWriteTimeUsec;
+    localSnapshot.debug.txOverwriteCount = gHeartRateTxOverwriteCount;
+    localSnapshot.packetLen = 1U;
 
-    tl[tlvIdx].type   = MMWDEMO_OUTPUT_MSG_HEART_RATE_DEBUG;
-    tl[tlvIdx].length = sizeof(HeartRateDebugOutput);
-    packetLen += sizeof(MmwDemo_output_message_tl) + tl[tlvIdx].length;
-    outputMessage.numTLVs += 1;
-    tlvIdx++;
-
-    /* Round up packet length to multiple of MMWDEMO_OUTPUT_MSG_SEGMENT_LEN */
-    outputMessage.totalPacketLen = MMWDEMO_OUTPUT_MSG_SEGMENT_LEN *
-        ((packetLen + (MMWDEMO_OUTPUT_MSG_SEGMENT_LEN - 1)) / MMWDEMO_OUTPUT_MSG_SEGMENT_LEN);
-
-    /* Always send a packet header */
-    UART_writePolling(uartHandle, (uint8_t *)&outputMessage, sizeof(MmwDemo_output_message_header));
-
-    tlvIdx = 0;
-    /* Send detected objects and side info*/
-    if ((HEART_RATE_UART_HR_ONLY == 0U) && (result->numObjOut > 0))
+    key = Task_disable();
+    if (gHeartRateTxSnapshot.packetLen != 0U)
     {
-        UART_writePolling(uartHandle,
-                          (uint8_t *)&tl[tlvIdx],
-                          sizeof(MmwDemo_output_message_tl));
-        Task_sleep(1);
-
-        /*Send array of objects */
-        UART_writePolling(uartHandle, (uint8_t *)objOutSph, sizeof(DPIF_PointCloudSpherical) * result->numObjOut);
-        tlvIdx++;
-
-        Task_sleep(1);
-
-        UART_writePolling(uartHandle,
-                          (uint8_t *)&tl[tlvIdx],
-                          sizeof(MmwDemo_output_message_tl));
-        Task_sleep(1);
-
-        /*Send array of objects */
-        UART_writePolling(uartHandle, (uint8_t *)objOutSideInfo, sizeof(DPIF_PointCloudSideInfo) * result->numObjOut);
-        tlvIdx++;
-        Task_sleep(1);
+        gHeartRateTxOverwriteCount++;
+        localSnapshot.debug.txOverwriteCount = gHeartRateTxOverwriteCount;
     }
+    gHeartRateTxSnapshot = localSnapshot;
+    gHeartRateCtx[subFrameIdx].lastTxHeartRateHz = output->heartRateHz;
+    gHeartRateCtx[subFrameIdx].lastTxValid       = output->valid;
+    gHeartRateCtx[subFrameIdx].hasSentOutput     = 1U;
+    gHeartRateCtx[subFrameIdx].outputDirty       = 0U;
+    Task_restore(key);
 
-    if ((HEART_RATE_UART_HR_ONLY == 0U) && (result->numTargets > 0))
+    Semaphore_post(gMmwMssMCB.uartTxSemHandle);
+}
+
+static void HeartRate_uartTxTask(UArg arg0, UArg arg1)
+{
+    UInt                key;
+    uint32_t            txStartCycles;
+    uint32_t            txElapsedUsec;
+    HeartRateTxSnapshot localSnapshot;
+    uint32_t            packetLen;
+    uint16_t            subFrameIdx;
+
+    while (1)
     {
-        /* If any targets tracked, send send target List TLV  */
-        UART_writePolling(uartHandle,
-                          (uint8_t *)&tl[tlvIdx],
-                          sizeof(MmwDemo_output_message_tl));
-        Task_sleep(1);
+        Semaphore_pend(gMmwMssMCB.uartTxSemHandle, BIOS_WAIT_FOREVER);
 
-        UART_writePolling(uartHandle, (uint8_t *)(tList), sizeof(trackerProc_Target) * result->numTargets);
+        key = Task_disable();
+        if (gHeartRateTxSnapshot.packetLen == 0U)
+        {
+            Task_restore(key);
+            continue;
+        }
 
-        tlvIdx++;
+        localSnapshot = gHeartRateTxSnapshot;
+        gHeartRateTxSnapshot.packetLen = 0U;
+        Task_restore(key);
 
-        Task_sleep(1);
+        packetLen = HeartRate_buildUartPacket(&localSnapshot, gHeartRateTxPacket, sizeof(gHeartRateTxPacket));
+        if (packetLen == 0U)
+        {
+            continue;
+        }
+
+        txStartCycles = Cycleprofiler_getTimeStamp();
+        UART_writePolling(gMmwMssMCB.loggingUartHandle, gHeartRateTxPacket, packetLen);
+        txElapsedUsec = (Cycleprofiler_getTimeStamp() - txStartCycles) / R4F_CLOCK_MHZ;
+
+        subFrameIdx = localSnapshot.subFrameIdx;
+        key = Task_disable();
+        gHeartRateCtx[subFrameIdx].debugOutput.txWriteTimeUsec = txElapsedUsec;
+        gHeartRateCtx[subFrameIdx].debugOutput.txOverwriteCount = gHeartRateTxOverwriteCount;
+        Task_restore(key);
     }
-
-    if ((HEART_RATE_UART_HR_ONLY == 0U) && (result->numIndices > 0))
-    {
-        /* If exists, send target Index TLV  */
-        UART_writePolling(uartHandle,
-                          (uint8_t *)&tl[tlvIdx],
-                          sizeof(MmwDemo_output_message_tl));
-        Task_sleep(1);
-
-        UART_writePolling(uartHandle, (uint8_t *)(tIndex), sizeof(trackerProc_TargetIndex) * result->numIndices);
-
-        tlvIdx++;
-
-        Task_sleep(1);
-    }
-
-    UART_writePolling(uartHandle,
-                      (uint8_t *)&tl[tlvIdx],
-                      sizeof(MmwDemo_output_message_tl));
-    Task_sleep(1);
-
-    UART_writePolling(uartHandle,
-                      (uint8_t *)&heartRateOutput,
-                      sizeof(HeartRateOutput));
-
-    tlvIdx++;
-
-    Task_sleep(1);
-
-    UART_writePolling(uartHandle,
-                      (uint8_t *)&tl[tlvIdx],
-                      sizeof(MmwDemo_output_message_tl));
-    Task_sleep(1);
-
-    UART_writePolling(uartHandle,
-                      (uint8_t *)&heartRateDebugOutput,
-                      sizeof(HeartRateDebugOutput));
-
-    tlvIdx++;
-
-    Task_sleep(1);
-
-    /* Send padding bytes */
-    numPaddingBytes = MMWDEMO_OUTPUT_MSG_SEGMENT_LEN - (packetLen & (MMWDEMO_OUTPUT_MSG_SEGMENT_LEN - 1));
-    if (numPaddingBytes < MMWDEMO_OUTPUT_MSG_SEGMENT_LEN)
-    {
-        UART_writePolling(uartHandle,
-                          (uint8_t *)padding,
-                          numPaddingBytes);
-    }
-
-    heartCtx->lastTxHeartRateHz = heartRateOutput.heartRateHz;
-    heartCtx->lastTxValid       = heartRateOutput.valid;
-    heartCtx->hasSentOutput     = 1U;
-    heartCtx->outputDirty       = 0U;
-
-
-    /* End: Tracker output code */
 }
 
 /**************************************************************************
@@ -5362,6 +5320,7 @@ static void MmwDemo_initTask(UArg arg0, UArg arg1)
     gMmwMssMCB.DPMstartSemHandle = Semaphore_create(0, &semParams, NULL);
     gMmwMssMCB.DPMstopSemHandle  = Semaphore_create(0, &semParams, NULL);
     gMmwMssMCB.DPMioctlSemHandle = Semaphore_create(0, &semParams, NULL);
+    gMmwMssMCB.uartTxSemHandle   = Semaphore_create(0, &semParams, NULL);
 
     /* Open EDMA driver */
     MmwDemo_edmaInit(&gMmwMssMCB.dataPathObj, DPC_OBJDET_R4F_EDMA_INSTANCE);
@@ -5489,6 +5448,11 @@ static void MmwDemo_initTask(UArg arg0, UArg arg1)
     taskParams.priority                  = MMWDEMO_DPC_OBJDET_DPM_TASK_PRIORITY;
     taskParams.stackSize                 = 8 * 1024;
     gMmwMssMCB.taskHandles.objDetDpmTask = Task_create(mmwDemo_mssDPMTask, &taskParams, NULL);
+
+    Task_Params_init(&taskParams);
+    taskParams.priority                = MMWDEMO_UART_TX_TASK_PRIORITY;
+    taskParams.stackSize               = 2 * 1024;
+    gMmwMssMCB.taskHandles.uartTxTask  = Task_create(HeartRate_uartTxTask, &taskParams, NULL);
 
     /*****************************************************************************
      * Initialize the Profiler

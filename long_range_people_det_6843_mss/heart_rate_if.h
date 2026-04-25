@@ -39,36 +39,31 @@ typedef struct HeartRateOutput_t
 
 typedef struct HeartRateDebugOutput_t
 {
-    float    samplePowerMean;
-    float    powerThreshold;
-    float    bestScore;
-    float    selectedScore;
     float    guideFreq;
     float    vmeGuideFreq;
     float    coarseFreq;
     float    runnerUpFreq;
     float    fineFreq;
     float    trackedFreq;
-    float    guidePeakMag;
     float    coarsePeakMag;
     float    runnerUpPeakMag;
     float    finePeakMag;
     float    trackedPeakMag;
     float    signalPower;
-    float    mtiAlpha;
-    float    vmeAlpha;
+    float    competitionRatio;
+    float    guideVmeGapHz;
+    float    coarseFineGapHz;
+    float    trackedFineGapHz;
     float    vmeLastRelErr;
-    float    selectedRangeMeters;
-    uint16_t bestRangeBin;
-    uint16_t selectedRangeBin;
-    uint16_t windowLength;
-    uint16_t sampleCount;
-    uint16_t isFilled;
-    uint16_t valid;
-    uint16_t gateChanged;
+    uint32_t estimateSeq;
+    uint32_t interFrameProcTimeUsec;
+    uint32_t interFrameProcMarginUsec;
+    uint32_t txWriteTimeUsec;
+    uint32_t txOverwriteCount;
     uint16_t vmeIterations;
     uint16_t trackSelected;
     uint16_t stepLimited;
+    uint16_t valid;
 } HeartRateDebugOutput;
 
 #ifdef __cplusplus

@@ -43,36 +43,31 @@ HEART_RATE_DEBUG_FIELDS = [
     "frame_number",
     "subframe_number",
     "time_cpu_cycles",
-    "sample_power_mean",
-    "power_threshold",
-    "best_score",
-    "selected_score",
     "guide_freq",
     "vme_guide_freq",
     "coarse_freq",
     "runner_up_freq",
     "fine_freq",
     "tracked_freq",
-    "guide_peak_mag",
     "coarse_peak_mag",
     "runner_up_peak_mag",
     "fine_peak_mag",
     "tracked_peak_mag",
     "signal_power",
-    "mti_alpha",
-    "vme_alpha",
+    "competition_ratio",
+    "guide_vme_gap_hz",
+    "coarse_fine_gap_hz",
+    "tracked_fine_gap_hz",
     "vme_last_rel_err",
-    "selected_range_meters",
-    "best_range_bin",
-    "selected_range_bin",
-    "window_length",
-    "sample_count",
-    "is_filled",
-    "valid",
-    "gate_changed",
+    "estimate_seq",
+    "inter_frame_proc_time_usec",
+    "inter_frame_proc_margin_usec",
+    "tx_write_time_usec",
+    "tx_overwrite_count",
     "vme_iterations",
     "track_selected",
     "step_limited",
+    "valid",
 ]
 
 
@@ -207,38 +202,33 @@ def parse_heart_rate_payload(payload: bytes) -> dict[str, float | int]:
 
 
 def parse_heart_rate_debug_payload(payload: bytes) -> dict[str, float | int]:
-    values = struct.unpack("<20f10H", payload)
+    values = struct.unpack("<16f5I4H", payload)
     return {
-        "sample_power_mean": values[0],
-        "power_threshold": values[1],
-        "best_score": values[2],
-        "selected_score": values[3],
-        "guide_freq": values[4],
-        "vme_guide_freq": values[5],
-        "coarse_freq": values[6],
-        "runner_up_freq": values[7],
-        "fine_freq": values[8],
-        "tracked_freq": values[9],
-        "guide_peak_mag": values[10],
-        "coarse_peak_mag": values[11],
-        "runner_up_peak_mag": values[12],
-        "fine_peak_mag": values[13],
-        "tracked_peak_mag": values[14],
-        "signal_power": values[15],
-        "mti_alpha": values[16],
-        "vme_alpha": values[17],
-        "vme_last_rel_err": values[18],
-        "selected_range_meters": values[19],
-        "best_range_bin": values[20],
-        "selected_range_bin": values[21],
-        "window_length": values[22],
-        "sample_count": values[23],
-        "is_filled": values[24],
-        "valid": values[25],
-        "gate_changed": values[26],
-        "vme_iterations": values[27],
-        "track_selected": values[28],
-        "step_limited": values[29],
+        "guide_freq": values[0],
+        "vme_guide_freq": values[1],
+        "coarse_freq": values[2],
+        "runner_up_freq": values[3],
+        "fine_freq": values[4],
+        "tracked_freq": values[5],
+        "coarse_peak_mag": values[6],
+        "runner_up_peak_mag": values[7],
+        "fine_peak_mag": values[8],
+        "tracked_peak_mag": values[9],
+        "signal_power": values[10],
+        "competition_ratio": values[11],
+        "guide_vme_gap_hz": values[12],
+        "coarse_fine_gap_hz": values[13],
+        "tracked_fine_gap_hz": values[14],
+        "vme_last_rel_err": values[15],
+        "estimate_seq": values[16],
+        "inter_frame_proc_time_usec": values[17],
+        "inter_frame_proc_margin_usec": values[18],
+        "tx_write_time_usec": values[19],
+        "tx_overwrite_count": values[20],
+        "vme_iterations": values[21],
+        "track_selected": values[22],
+        "step_limited": values[23],
+        "valid": values[24],
     }
 
 
@@ -415,7 +405,7 @@ def monitor_data(
                     f"fs={heart['sample_rate_hz']:.3f} Hz win={heart['window_length']}"
                 )
             elif tlv_type == MMWDEMO_OUTPUT_MSG_HEART_RATE_DEBUG:
-                if len(payload) != struct.calcsize("<20f10H"):
+                if len(payload) != struct.calcsize("<16f5I4H"):
                     print(
                         f"[DATA] Frame {header['frame_number']} subFrame {header['subframe_number']} "
                         f"heart-rate debug TLV length mismatch: {len(payload)}"
@@ -435,22 +425,23 @@ def monitor_data(
                 heart_rate_debug_csv.flush()
                 print(
                     f"[DBG] frame={header['frame_number']} subFrame={header['subframe_number']} "
-                    f"bestBin={debug['best_range_bin']} selBin={debug['selected_range_bin']} "
-                    f"gateChanged={debug['gate_changed']} bestScore={debug['best_score']:.3f} "
-                    f"selScore={debug['selected_score']:.3f} "
                     f"guide={debug['guide_freq']:.3f} vmeGuide={debug['vme_guide_freq']:.3f} "
                     f"coarse={debug['coarse_freq']:.3f} runner={debug['runner_up_freq']:.3f} "
                     f"fine={debug['fine_freq']:.3f} tracked={debug['tracked_freq']:.3f} "
-                    f"guidePk={debug['guide_peak_mag']:.3f} coarsePk={debug['coarse_peak_mag']:.3f} "
+                    f"coarsePk={debug['coarse_peak_mag']:.3f} "
                     f"runnerPk={debug['runner_up_peak_mag']:.3f} finePk={debug['fine_peak_mag']:.3f} "
                     f"trackedPk={debug['tracked_peak_mag']:.3f} "
-                    f"sigP={debug['signal_power']:.3f} sampP={debug['sample_power_mean']:.3f} "
-                    f"thr={debug['power_threshold']:.3f} mtiAlpha={debug['mti_alpha']:.5f} "
-                    f"vmeAlpha={debug['vme_alpha']:.1f} vmeIter={debug['vme_iterations']} "
-                    f"vmeErr={debug['vme_last_rel_err']:.6f} trackSel={debug['track_selected']} "
-                    f"stepLim={debug['step_limited']} "
-                    f"range={debug['selected_range_meters']:.3f} m filled={debug['is_filled']} "
-                    f"samples={debug['sample_count']}/{debug['window_length']} valid={debug['valid']}"
+                    f"sigP={debug['signal_power']:.3f} comp={debug['competition_ratio']:.3f} "
+                    f"gvGap={debug['guide_vme_gap_hz'] * 60.0:.2f}bpm "
+                    f"cfGap={debug['coarse_fine_gap_hz'] * 60.0:.2f}bpm "
+                    f"tfGap={debug['tracked_fine_gap_hz'] * 60.0:.2f}bpm "
+                    f"seq={debug['estimate_seq']} "
+                    f"proc={debug['inter_frame_proc_time_usec']}us "
+                    f"margin={debug['inter_frame_proc_margin_usec']}us "
+                    f"tx={debug['tx_write_time_usec']}us ovw={debug['tx_overwrite_count']} "
+                    f"vmeIter={debug['vme_iterations']} vmeErr={debug['vme_last_rel_err']:.6f} "
+                    f"trackSel={debug['track_selected']} stepLim={debug['step_limited']} "
+                    f"valid={debug['valid']}"
                 )
 
         if (not heart_rate_found) and (not heart_rate_debug_found):
