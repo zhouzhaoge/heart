@@ -642,26 +642,15 @@
 /* total number of point cloud can be collected for tracker*/
 #define TOTAL_NUM_POINT_CONCAT 500U
 
-#define HEART_RATE_MAX_WINDOW_SAMPLES    256U
-#define HEART_RATE_RANGE_BIN_SKIP        3U
-#define HEART_RATE_BANDPASS_ORDER        3U
-#define HEART_RATE_GUIDE_FREQ_MIN_HZ     1.0f
-#define HEART_RATE_GUIDE_FILTER_MAX_HZ   2.0f
-#define HEART_RATE_GUIDE_FREQ_MAX_HZ     3.0f
-#define HEART_RATE_FINE_SEARCH_HALF_BINS 2U
-#define HEART_RATE_VME_ALPHA             100.0f
-#define HEART_RATE_TARGET_SAMPLE_RATE_HZ 10.0f
-#define HEART_RATE_ESTIMATE_STEP_SECONDS 0.5f
-#define HEART_RATE_TRACK_HALF_SPAN_HZ    0.08f
-#define HEART_RATE_TRACK_KEEP_RATIO      0.75f
-#define HEART_RATE_MAX_STEP_HZ           0.010f
-#define HEART_RATE_SWITCH_GUARD_HZ       0.05f
-#define HEART_RATE_SWITCH_CONFIRM_TOL_HZ 0.03f
-#define HEART_RATE_SWITCH_CONFIRM_COUNT  4U
-#define HEART_RATE_TX_CHANGE_EPS_HZ      1.0e-4f
-#define HEART_RATE_UART_HR_ONLY          1U
-/* DSS frameStartTimeStamp is reported in C674x cycles on xWR6843. */
-#define HEART_RATE_DSS_TIMESTAMP_HZ      600000000.0f
+#ifndef MMWDEMO_HEART_RATE_TLV1001_ENABLE
+#define MMWDEMO_HEART_RATE_TLV1001_ENABLE 1U
+#endif
+
+#ifndef MMWDEMO_HEART_RATE_TLV1002_ENABLE
+#define MMWDEMO_HEART_RATE_TLV1002_ENABLE 1U
+#endif
+
+#define MMWDEMO_HEART_RATE_TX_PERIOD_USEC 500000U
 
 /**************************************************************************
  *************************** Global Definitions ***************************
@@ -673,76 +662,32 @@
  */
 MmwDemo_MSS_MCB gMmwMssMCB;
 
-typedef struct HeartRateMssCtx_t
+typedef struct HeartRateMssState_t
 {
-    float    energyAccum[HEART_RATE_MAX_RANGE_BINS];
-    float    rangeMeanRe[HEART_RATE_MAX_RANGE_BINS];
-    float    rangeMeanIm[HEART_RATE_MAX_RANGE_BINS];
-    float    slowTimeRe[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float    slowTimeIm[HEART_RATE_MAX_WINDOW_SAMPLES];
-    uint16_t numRangeBins;
-    uint16_t windowLength;
-    uint16_t sampleCount;
-    uint16_t nextIndex;
-    uint16_t slowTimeAccumCount;
-    uint16_t estimateStrideSamples;
-    uint16_t samplesSinceEstimate;
-    uint16_t selectedRangeBin;
-    uint8_t  isFilled;
-    float    framePeriodSec;
-    float    frameRateHz;
-    float    sampleRateHz;
-    float    targetSampleRateHz;
-    float    rangeStep;
-    float    slowTimeAccumRe;
-    float    slowTimeAccumIm;
-    float    trackedHeartRateHz;
-    float    pendingSwitchHeartRateHz;
-    float    lastTxHeartRateHz;
-    uint32_t prevFrameStartTimeStamp;
-    uint16_t trackedHeartRateValid;
-    uint16_t pendingSwitchCount;
-    uint16_t outputDirty;
-    uint16_t hasSentOutput;
-    uint16_t lastTxValid;
-    HeartRateOutput output;
-    HeartRateDebugOutput debugOutput;
-} HeartRateMssCtx;
+    uint32_t          lastRxSnapshotSeq;
+    uint32_t          lastTxWriteTimeUsec;
+    uint32_t          framePeriodUsec;
+    uint32_t          txAccumUsec;
+    uint16_t          txPrimed;
+    uint16_t          reserved0;
+    HeartRateDssResult latestResult;
+} HeartRateMssState;
 
-static HeartRateMssCtx gHeartRateCtx[RL_MAX_SUBFRAMES];
-
-typedef struct HeartRateScratch_t
-{
-    float seriesRe[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float seriesIm[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float phaseRaw[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float phaseFilt[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float rhoRaw[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float rhoMed[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float psi[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float heartSignal[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float fftRe[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float fftIm[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float dHatRe[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float dHatIm[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float dHatOldRe[HEART_RATE_MAX_WINDOW_SAMPLES];
-    float dHatOldIm[HEART_RATE_MAX_WINDOW_SAMPLES];
-} HeartRateScratch;
-
-static HeartRateScratch gHeartRateScratch;
+static HeartRateMssState gHeartRateState[RL_MAX_SUBFRAMES];
 
 typedef struct HeartRateTxSnapshot_t
 {
-    uint32_t         packetLen;
-    uint32_t         frameNumber;
-    uint16_t         subFrameIdx;
-    HeartRateOutput  output;
+    uint32_t             packetLen;
+    uint32_t             frameNumber;
+    uint16_t             subFrameIdx;
+    uint8_t              sendHeartRate;
+    uint8_t              sendHeartRateDebug;
+    HeartRateOutput      output;
     HeartRateDebugOutput debug;
 } HeartRateTxSnapshot;
 
 static HeartRateTxSnapshot gHeartRateTxSnapshot;
 static uint8_t             gHeartRateTxPacket[MMWDEMO_OUTPUT_MSG_SEGMENT_LEN * 8U];
-static volatile uint32_t   gHeartRateEstimateSeq = 0U;
 static volatile uint32_t   gHeartRateTxOverwriteCount = 0U;
 
 #ifndef TRACKERPROC_ON_DSP
@@ -790,1073 +735,6 @@ rlRfLdoBypassCfg_t gRFLdoBypassCfg = {
     .ioSupplyIndicator = 0, /* 3.3 V IO supply */
 };
 
-static float HeartRate_magSq(float re, float im)
-{
-    return ((re * re) + (im * im));
-}
-
-static float HeartRate_median3(float a, float b, float c)
-{
-    if (a > b)
-    {
-        float tmp = a;
-        a         = b;
-        b         = tmp;
-    }
-    if (b > c)
-    {
-        float tmp = b;
-        b         = c;
-        c         = tmp;
-    }
-    if (a > b)
-    {
-        float tmp = a;
-        a         = b;
-        b         = tmp;
-    }
-    return b;
-}
-
-static void HeartRate_resetCtx(HeartRateMssCtx *ctx)
-{
-    float framePeriodSec;
-    float frameRateHz;
-    float sampleRateHz;
-    float targetSampleRateHz;
-    float rangeStep;
-    uint16_t windowLength;
-    uint16_t numRangeBins;
-    uint16_t estimateStrideSamples;
-
-    framePeriodSec = ctx->framePeriodSec;
-    frameRateHz    = ctx->frameRateHz;
-    sampleRateHz   = ctx->sampleRateHz;
-    targetSampleRateHz = ctx->targetSampleRateHz;
-    rangeStep      = ctx->rangeStep;
-    windowLength   = ctx->windowLength;
-    numRangeBins   = ctx->numRangeBins;
-    estimateStrideSamples = ctx->estimateStrideSamples;
-
-    memset((void *)ctx, 0, sizeof(HeartRateMssCtx));
-
-    ctx->framePeriodSec   = framePeriodSec;
-    ctx->frameRateHz      = frameRateHz;
-    ctx->sampleRateHz     = sampleRateHz;
-    ctx->targetSampleRateHz = targetSampleRateHz;
-    ctx->rangeStep        = rangeStep;
-    ctx->windowLength     = windowLength;
-    ctx->numRangeBins     = numRangeBins;
-    ctx->estimateStrideSamples = estimateStrideSamples;
-    ctx->selectedRangeBin = 0xFFFFU;
-    ctx->output.selectedRangeBin = 0xFFFFU;
-    ctx->output.sampleRateHz     = sampleRateHz;
-    ctx->output.windowLength     = windowLength;
-}
-
-static void HeartRate_pushSlowTimeSample(HeartRateMssCtx *ctx, float sampleRe, float sampleIm)
-{
-    if (ctx->windowLength == 0U)
-    {
-        return;
-    }
-
-    ctx->slowTimeRe[ctx->nextIndex] = sampleRe;
-    ctx->slowTimeIm[ctx->nextIndex] = sampleIm;
-    ctx->nextIndex = (uint16_t)((ctx->nextIndex + 1U) % ctx->windowLength);
-
-    if (ctx->sampleCount < ctx->windowLength)
-    {
-        ctx->sampleCount++;
-    }
-    if (ctx->sampleCount >= ctx->windowLength)
-    {
-        ctx->isFilled = 1U;
-    }
-}
-
-static void HeartRate_computeBandpassBiquad(float fs,
-                                            float fLow,
-                                            float fHigh,
-                                            float *b0,
-                                            float *b1,
-                                            float *b2,
-                                            float *a1,
-                                            float *a2)
-{
-    float centerFreq;
-    float bandwidth;
-    float qFactor;
-    float omega;
-    float alpha;
-    float cosOmega;
-    float a0;
-    const float twoPi = 6.28318530718f;
-
-    if ((fs <= 0.0f) || (fLow <= 0.0f) || (fHigh <= fLow))
-    {
-        *b0 = 1.0f;
-        *b1 = 0.0f;
-        *b2 = 0.0f;
-        *a1 = 0.0f;
-        *a2 = 0.0f;
-        return;
-    }
-
-    centerFreq = sqrtf(fLow * fHigh);
-    bandwidth  = fHigh - fLow;
-    qFactor    = centerFreq / bandwidth;
-    omega      = twoPi * centerFreq / fs;
-    alpha      = sinf(omega) / (2.0f * qFactor);
-    cosOmega   = cosf(omega);
-    a0         = 1.0f + alpha;
-
-    *b0 = alpha / a0;
-    *b1 = 0.0f;
-    *b2 = -alpha / a0;
-    *a1 = (-2.0f * cosOmega) / a0;
-    *a2 = (1.0f - alpha) / a0;
-}
-
-static void HeartRate_applyBiquad(const float *input,
-                                  float *output,
-                                  uint16_t length,
-                                  float b0,
-                                  float b1,
-                                  float b2,
-                                  float a1,
-                                  float a2)
-{
-    uint16_t sampleIdx;
-    float x1;
-    float x2;
-    float y1;
-    float y2;
-    float x0;
-    float y0;
-
-    x1 = 0.0f;
-    x2 = 0.0f;
-    y1 = 0.0f;
-    y2 = 0.0f;
-
-    for (sampleIdx = 0; sampleIdx < length; sampleIdx++)
-    {
-        x0            = input[sampleIdx];
-        y0            = (b0 * x0) + (b1 * x1) + (b2 * x2) - (a1 * y1) - (a2 * y2);
-        output[sampleIdx] = y0;
-
-        x2 = x1;
-        x1 = x0;
-        y2 = y1;
-        y1 = y0;
-    }
-}
-
-static void HeartRate_applyBiquadForwardBackward(const float *input,
-                                                 float *scratch,
-                                                 float *output,
-                                                 uint16_t length,
-                                                 float b0,
-                                                 float b1,
-                                                 float b2,
-                                                 float a1,
-                                                 float a2)
-{
-    uint16_t sampleIdx;
-
-    HeartRate_applyBiquad(input, scratch, length, b0, b1, b2, a1, a2);
-
-    for (sampleIdx = 0; sampleIdx < length; sampleIdx++)
-    {
-        output[sampleIdx] = scratch[(length - 1U) - sampleIdx];
-    }
-
-    HeartRate_applyBiquad(output, scratch, length, b0, b1, b2, a1, a2);
-
-    for (sampleIdx = 0; sampleIdx < length; sampleIdx++)
-    {
-        output[sampleIdx] = scratch[(length - 1U) - sampleIdx];
-    }
-}
-
-static float HeartRate_findPeakFrequencyWithRunnerUp(const float *signal,
-                                                     uint16_t length,
-                                                     float fs,
-                                                     float fMin,
-                                                     float fMax,
-                                                     uint16_t numGrid,
-                                                     float *peakMagOut,
-                                                     float *runnerUpFreqOut,
-                                                     float *runnerUpMagOut)
-{
-    uint16_t gridIdx;
-    uint16_t sampleIdx;
-    float    step;
-    float    bestMag;
-    float    bestFreq;
-    float    runnerUpMag;
-    float    runnerUpFreq;
-    float    exclusionHz;
-    float    freq;
-    float    angleStep;
-    float    cosStep;
-    float    sinStep;
-    float    cosCurr;
-    float    sinCurr;
-    float    tmp;
-    float    sumRe;
-    float    sumIm;
-    float    mag;
-    const float twoPi = 6.28318530718f;
-
-    if ((length == 0U) || (fs <= 0.0f) || (fMax <= fMin))
-    {
-        if (peakMagOut != NULL)
-        {
-            *peakMagOut = 0.0f;
-        }
-        if (runnerUpFreqOut != NULL)
-        {
-            *runnerUpFreqOut = 0.0f;
-        }
-        if (runnerUpMagOut != NULL)
-        {
-            *runnerUpMagOut = 0.0f;
-        }
-        return fMin;
-    }
-
-    if (numGrid < 2U)
-    {
-        numGrid = 2U;
-    }
-
-    step         = (fMax - fMin) / (float)(numGrid - 1U);
-    bestMag      = 0.0f;
-    bestFreq     = fMin;
-    runnerUpMag  = 0.0f;
-    runnerUpFreq = fMin;
-
-    for (gridIdx = 0; gridIdx < numGrid; gridIdx++)
-    {
-        freq      = fMin + ((float)gridIdx * step);
-        angleStep = -twoPi * freq / fs;
-        cosStep   = cosf(angleStep);
-        sinStep   = sinf(angleStep);
-        cosCurr   = 1.0f;
-        sinCurr   = 0.0f;
-        sumRe     = 0.0f;
-        sumIm     = 0.0f;
-
-        for (sampleIdx = 0; sampleIdx < length; sampleIdx++)
-        {
-            sumRe += signal[sampleIdx] * cosCurr;
-            sumIm += signal[sampleIdx] * sinCurr;
-
-            tmp     = (cosCurr * cosStep) - (sinCurr * sinStep);
-            sinCurr = (cosCurr * sinStep) + (sinCurr * cosStep);
-            cosCurr = tmp;
-        }
-
-        mag = (sumRe * sumRe) + (sumIm * sumIm);
-        if (mag > bestMag)
-        {
-            bestMag  = mag;
-            bestFreq = freq;
-        }
-    }
-
-    if ((runnerUpFreqOut != NULL) || (runnerUpMagOut != NULL))
-    {
-        exclusionHz = 3.0f * step;
-        for (gridIdx = 0; gridIdx < numGrid; gridIdx++)
-        {
-            freq = fMin + ((float)gridIdx * step);
-            if (fabsf(freq - bestFreq) <= exclusionHz)
-            {
-                continue;
-            }
-
-            angleStep = -twoPi * freq / fs;
-            cosStep   = cosf(angleStep);
-            sinStep   = sinf(angleStep);
-            cosCurr   = 1.0f;
-            sinCurr   = 0.0f;
-            sumRe     = 0.0f;
-            sumIm     = 0.0f;
-
-            for (sampleIdx = 0; sampleIdx < length; sampleIdx++)
-            {
-                sumRe += signal[sampleIdx] * cosCurr;
-                sumIm += signal[sampleIdx] * sinCurr;
-
-                tmp     = (cosCurr * cosStep) - (sinCurr * sinStep);
-                sinCurr = (cosCurr * sinStep) + (sinCurr * cosStep);
-                cosCurr = tmp;
-            }
-
-            mag = (sumRe * sumRe) + (sumIm * sumIm);
-            if (mag > runnerUpMag)
-            {
-                runnerUpMag  = mag;
-                runnerUpFreq = freq;
-            }
-        }
-    }
-
-    if (peakMagOut != NULL)
-    {
-        *peakMagOut = bestMag;
-    }
-    if (runnerUpFreqOut != NULL)
-    {
-        *runnerUpFreqOut = runnerUpFreq;
-    }
-    if (runnerUpMagOut != NULL)
-    {
-        *runnerUpMagOut = runnerUpMag;
-    }
-
-    return bestFreq;
-}
-
-static float HeartRate_findPeakFrequency(const float *signal,
-                                         uint16_t length,
-                                         float fs,
-                                         float fMin,
-                                         float fMax,
-                                         uint16_t numGrid,
-                                         float *peakMagOut)
-{
-    return HeartRate_findPeakFrequencyWithRunnerUp(signal,
-                                                   length,
-                                                   fs,
-                                                   fMin,
-                                                   fMax,
-                                                   numGrid,
-                                                   peakMagOut,
-                                                   NULL,
-                                                   NULL);
-}
-
-static float HeartRate_runVME(const float *phaseRaw,
-                              uint16_t length,
-                              float fs,
-                              float guideFreq,
-                              float *heartSignalOut,
-                              uint16_t *iterationsOut,
-                              float *relErrOut)
-{
-    uint16_t sampleIdx;
-    uint16_t freqIdx;
-    uint16_t iterIdx;
-    uint16_t halfLength;
-    float    omegaGuide;
-    float    freqOmega;
-    float    diffOmega;
-    float    diffOmega2;
-    float    termAlpha;
-    float    denominator;
-    float    numeratorOmega;
-    float    denominatorOmega;
-    float    powerVal;
-    float    errNum;
-    float    errDen;
-    float    diffRe;
-    float    diffIm;
-    float    relErr;
-    float    angleStep;
-    float    cosStep;
-    float    sinStep;
-    float    cosCurr;
-    float    sinCurr;
-    float    tmp;
-    float    sumRe;
-    float    alpha;
-    const float twoPi = 6.28318530718f;
-
-    alpha = HEART_RATE_VME_ALPHA;
-    relErr = 0.0f;
-
-    gHeartRateScratch.psi[0] = 0.0f;
-    for (sampleIdx = 1U; sampleIdx < length; sampleIdx++)
-    {
-        gHeartRateScratch.psi[sampleIdx] = phaseRaw[sampleIdx] - phaseRaw[sampleIdx - 1U];
-    }
-
-    for (freqIdx = 0U; freqIdx < length; freqIdx++)
-    {
-        angleStep = -twoPi * (float)freqIdx / (float)length;
-        cosStep   = cosf(angleStep);
-        sinStep   = sinf(angleStep);
-        cosCurr   = 1.0f;
-        sinCurr   = 0.0f;
-        gHeartRateScratch.fftRe[freqIdx] = 0.0f;
-        gHeartRateScratch.fftIm[freqIdx] = 0.0f;
-
-        for (sampleIdx = 0U; sampleIdx < length; sampleIdx++)
-        {
-            gHeartRateScratch.fftRe[freqIdx] += gHeartRateScratch.psi[sampleIdx] * cosCurr;
-            gHeartRateScratch.fftIm[freqIdx] += gHeartRateScratch.psi[sampleIdx] * sinCurr;
-
-            tmp     = (cosCurr * cosStep) - (sinCurr * sinStep);
-            sinCurr = (cosCurr * sinStep) + (sinCurr * cosStep);
-            cosCurr = tmp;
-        }
-
-        gHeartRateScratch.dHatRe[freqIdx]    = 0.0f;
-        gHeartRateScratch.dHatIm[freqIdx]    = 0.0f;
-        gHeartRateScratch.dHatOldRe[freqIdx] = 0.0f;
-        gHeartRateScratch.dHatOldIm[freqIdx] = 0.0f;
-    }
-
-    omegaGuide = twoPi * guideFreq;
-    halfLength = length / 2U;
-
-    for (iterIdx = 0U; iterIdx < 40U; iterIdx++)
-    {
-        for (freqIdx = 0U; freqIdx < length; freqIdx++)
-        {
-            freqOmega  = twoPi * fs * ((float)freqIdx / (float)length);
-            diffOmega  = freqOmega - omegaGuide;
-            diffOmega2 = diffOmega * diffOmega;
-            termAlpha  = alpha * alpha * diffOmega2 * diffOmega2;
-            denominator = (1.0f + termAlpha) * (1.0f + (2.0f * alpha * diffOmega2));
-            gHeartRateScratch.dHatRe[freqIdx] =
-                (gHeartRateScratch.fftRe[freqIdx] + (termAlpha * gHeartRateScratch.dHatOldRe[freqIdx])) / denominator;
-            gHeartRateScratch.dHatIm[freqIdx] =
-                (gHeartRateScratch.fftIm[freqIdx] + (termAlpha * gHeartRateScratch.dHatOldIm[freqIdx])) / denominator;
-        }
-
-        numeratorOmega   = 0.0f;
-        denominatorOmega = 0.0f;
-        for (freqIdx = 1U; freqIdx < halfLength; freqIdx++)
-        {
-            powerVal = HeartRate_magSq(gHeartRateScratch.dHatRe[freqIdx], gHeartRateScratch.dHatIm[freqIdx]);
-            numeratorOmega += (twoPi * fs * ((float)freqIdx / (float)length)) * powerVal;
-            denominatorOmega += powerVal;
-        }
-
-        if (denominatorOmega > 0.0f)
-        {
-            omegaGuide = numeratorOmega / denominatorOmega;
-        }
-
-        errNum = 0.0f;
-        errDen = 0.0f;
-        for (freqIdx = 0U; freqIdx < length; freqIdx++)
-        {
-            diffRe = gHeartRateScratch.dHatRe[freqIdx] - gHeartRateScratch.dHatOldRe[freqIdx];
-            diffIm = gHeartRateScratch.dHatIm[freqIdx] - gHeartRateScratch.dHatOldIm[freqIdx];
-            errNum += HeartRate_magSq(diffRe, diffIm);
-            errDen += HeartRate_magSq(gHeartRateScratch.dHatOldRe[freqIdx], gHeartRateScratch.dHatOldIm[freqIdx]);
-
-            gHeartRateScratch.dHatOldRe[freqIdx] = gHeartRateScratch.dHatRe[freqIdx];
-            gHeartRateScratch.dHatOldIm[freqIdx] = gHeartRateScratch.dHatIm[freqIdx];
-        }
-
-        relErr = errNum / (errDen + 1.0e-6f);
-        if ((iterIdx > 0U) && (relErr < 1.0e-4f))
-        {
-            break;
-        }
-    }
-
-    for (sampleIdx = 0U; sampleIdx < length; sampleIdx++)
-    {
-        angleStep = twoPi * (float)sampleIdx / (float)length;
-        cosStep   = cosf(angleStep);
-        sinStep   = sinf(angleStep);
-        cosCurr   = 1.0f;
-        sinCurr   = 0.0f;
-        sumRe     = 0.0f;
-
-        for (freqIdx = 0U; freqIdx < length; freqIdx++)
-        {
-            sumRe += (gHeartRateScratch.dHatRe[freqIdx] * cosCurr) - (gHeartRateScratch.dHatIm[freqIdx] * sinCurr);
-
-            tmp     = (cosCurr * cosStep) - (sinCurr * sinStep);
-            sinCurr = (cosCurr * sinStep) + (sinCurr * cosStep);
-            cosCurr = tmp;
-        }
-
-        heartSignalOut[sampleIdx] = sumRe / (float)length;
-    }
-
-    if (length > 1U)
-    {
-        tmp = heartSignalOut[length - 1U];
-        for (sampleIdx = (uint16_t)(length - 1U); sampleIdx > 0U; sampleIdx--)
-        {
-            heartSignalOut[sampleIdx] = heartSignalOut[sampleIdx - 1U];
-        }
-        heartSignalOut[0] = tmp;
-    }
-
-    if (iterationsOut != NULL)
-    {
-        *iterationsOut = (uint16_t)(iterIdx + 1U);
-    }
-    if (relErrOut != NULL)
-    {
-        *relErrOut = relErr;
-    }
-
-    return (omegaGuide / twoPi);
-}
-
-static void HeartRate_estimateForWindow(HeartRateMssCtx *ctx)
-{
-    uint16_t sampleIdx;
-    uint16_t histIdx;
-    uint16_t length;
-    float    samplePowerMean;
-    float    powerThreshold;
-    float    dI;
-    float    dQ;
-    float    denominator;
-    float    b0;
-    float    b1;
-    float    b2;
-    float    a1;
-    float    a2;
-    float    coarsePeakMag;
-    float    finePeakMag;
-    float    runnerUpPeakMag;
-    float    guideFreq;
-    float    vmeGuideFreq;
-    float    coarseFreq;
-    float    runnerUpFreq;
-    float    fineFreq;
-    float    trackedFreq;
-    float    trackedPeakMag;
-    float    trackedStart;
-    float    trackedEnd;
-    float    coarseDf;
-    float    fineStart;
-    float    fineEnd;
-    float    signalPower;
-    float    vmeLastRelErr;
-    float    candidateFreq;
-    float    candidatePeakMag;
-    uint16_t outputChanged;
-    uint16_t vmeIterations;
-    uint16_t trackSelected;
-    uint16_t stepLimited;
-
-    length = ctx->windowLength;
-    if ((ctx->sampleCount < length) || (length == 0U) || (ctx->sampleRateHz <= 0.0f))
-    {
-        ctx->output.valid = 0U;
-        ctx->debugOutput.guideFreq       = 0.0f;
-        ctx->debugOutput.vmeGuideFreq    = 0.0f;
-        ctx->debugOutput.coarseFreq      = 0.0f;
-        ctx->debugOutput.runnerUpFreq    = 0.0f;
-        ctx->debugOutput.fineFreq        = 0.0f;
-        ctx->debugOutput.trackedFreq     = 0.0f;
-        ctx->debugOutput.coarsePeakMag   = 0.0f;
-        ctx->debugOutput.runnerUpPeakMag = 0.0f;
-        ctx->debugOutput.finePeakMag     = 0.0f;
-        ctx->debugOutput.trackedPeakMag  = 0.0f;
-        ctx->debugOutput.signalPower     = 0.0f;
-        ctx->debugOutput.competitionRatio = 0.0f;
-        ctx->debugOutput.guideVmeGapHz    = 0.0f;
-        ctx->debugOutput.coarseFineGapHz  = 0.0f;
-        ctx->debugOutput.trackedFineGapHz = 0.0f;
-        ctx->debugOutput.vmeLastRelErr   = 0.0f;
-        ctx->debugOutput.estimateSeq     = 0U;
-        ctx->debugOutput.interFrameProcTimeUsec   = 0U;
-        ctx->debugOutput.interFrameProcMarginUsec = 0U;
-        ctx->debugOutput.txWriteTimeUsec          = 0U;
-        ctx->debugOutput.txOverwriteCount         = gHeartRateTxOverwriteCount;
-        ctx->debugOutput.vmeIterations   = 0U;
-        ctx->debugOutput.trackSelected   = 0U;
-        ctx->debugOutput.stepLimited     = 0U;
-        ctx->debugOutput.valid           = 0U;
-        return;
-    }
-
-    runnerUpPeakMag = 0.0f;
-    runnerUpFreq    = 0.0f;
-    trackedFreq     = ctx->trackedHeartRateHz;
-    trackedPeakMag  = 0.0f;
-    vmeGuideFreq    = 0.0f;
-    vmeLastRelErr   = 0.0f;
-    vmeIterations   = 0U;
-    trackSelected   = 0U;
-    stepLimited     = 0U;
-    candidateFreq   = 0.0f;
-    candidatePeakMag = 0.0f;
-
-    if (ctx->isFilled == 1U)
-    {
-        for (sampleIdx = 0U; sampleIdx < length; sampleIdx++)
-        {
-            histIdx = (uint16_t)((ctx->nextIndex + sampleIdx) % length);
-            gHeartRateScratch.seriesRe[sampleIdx] = ctx->slowTimeRe[histIdx];
-            gHeartRateScratch.seriesIm[sampleIdx] = ctx->slowTimeIm[histIdx];
-        }
-    }
-    else
-    {
-        for (sampleIdx = 0U; sampleIdx < length; sampleIdx++)
-        {
-            gHeartRateScratch.seriesRe[sampleIdx] = ctx->slowTimeRe[sampleIdx];
-            gHeartRateScratch.seriesIm[sampleIdx] = ctx->slowTimeIm[sampleIdx];
-        }
-    }
-
-    samplePowerMean = 0.0f;
-    for (sampleIdx = 0U; sampleIdx < length; sampleIdx++)
-    {
-        samplePowerMean += HeartRate_magSq(gHeartRateScratch.seriesRe[sampleIdx], gHeartRateScratch.seriesIm[sampleIdx]);
-    }
-    samplePowerMean /= (float)length;
-    powerThreshold = 0.5f * samplePowerMean;
-    if (powerThreshold < 1.0f)
-    {
-        powerThreshold = 1.0f;
-    }
-
-    gHeartRateScratch.rhoRaw[0] = 0.0f;
-    for (sampleIdx = 1U; sampleIdx < length; sampleIdx++)
-    {
-        dI = gHeartRateScratch.seriesRe[sampleIdx] - gHeartRateScratch.seriesRe[sampleIdx - 1U];
-        dQ = gHeartRateScratch.seriesIm[sampleIdx] - gHeartRateScratch.seriesIm[sampleIdx - 1U];
-        denominator = HeartRate_magSq(gHeartRateScratch.seriesRe[sampleIdx], gHeartRateScratch.seriesIm[sampleIdx]);
-        if (denominator < powerThreshold)
-        {
-            denominator = powerThreshold;
-        }
-
-        gHeartRateScratch.rhoRaw[sampleIdx] =
-            ((gHeartRateScratch.seriesRe[sampleIdx] * dQ) - (gHeartRateScratch.seriesIm[sampleIdx] * dI)) / denominator;
-    }
-
-    gHeartRateScratch.rhoMed[0] = gHeartRateScratch.rhoRaw[0];
-    for (sampleIdx = 1U; sampleIdx < (length - 1U); sampleIdx++)
-    {
-        gHeartRateScratch.rhoMed[sampleIdx] =
-            HeartRate_median3(gHeartRateScratch.rhoRaw[sampleIdx - 1U],
-                              gHeartRateScratch.rhoRaw[sampleIdx],
-                              gHeartRateScratch.rhoRaw[sampleIdx + 1U]);
-    }
-    if (length > 1U)
-    {
-        gHeartRateScratch.rhoMed[length - 1U] = gHeartRateScratch.rhoRaw[length - 1U];
-    }
-
-    gHeartRateScratch.phaseRaw[0] = gHeartRateScratch.rhoMed[0];
-    for (sampleIdx = 1U; sampleIdx < length; sampleIdx++)
-    {
-        gHeartRateScratch.phaseRaw[sampleIdx] = gHeartRateScratch.phaseRaw[sampleIdx - 1U] + gHeartRateScratch.rhoMed[sampleIdx];
-    }
-
-    HeartRate_computeBandpassBiquad(ctx->sampleRateHz,
-                                    HEART_RATE_GUIDE_FREQ_MIN_HZ,
-                                    HEART_RATE_GUIDE_FILTER_MAX_HZ,
-                                    &b0,
-                                    &b1,
-                                    &b2,
-                                    &a1,
-                                    &a2);
-    HeartRate_applyBiquadForwardBackward(gHeartRateScratch.phaseRaw,
-                                         gHeartRateScratch.seriesRe,
-                                         gHeartRateScratch.phaseFilt,
-                                         length,
-                                         b0,
-                                         b1,
-                                         b2,
-                                         a1,
-                                         a2);
-
-    coarseFreq = HeartRate_findPeakFrequency(gHeartRateScratch.phaseFilt,
-                                             length,
-                                             ctx->sampleRateHz,
-                                             HEART_RATE_GUIDE_FREQ_MIN_HZ,
-                                             HEART_RATE_GUIDE_FILTER_MAX_HZ,
-                                             length,
-                                             NULL);
-    guideFreq = coarseFreq;
-
-    vmeGuideFreq = HeartRate_runVME(gHeartRateScratch.phaseRaw,
-                                    length,
-                                    ctx->sampleRateHz,
-                                    coarseFreq,
-                                    gHeartRateScratch.heartSignal,
-                                    &vmeIterations,
-                                    &vmeLastRelErr);
-
-    coarseFreq = HeartRate_findPeakFrequencyWithRunnerUp(gHeartRateScratch.heartSignal,
-                                                         length,
-                                                         ctx->sampleRateHz,
-                                                         HEART_RATE_GUIDE_FREQ_MIN_HZ,
-                                                         HEART_RATE_GUIDE_FREQ_MAX_HZ,
-                                                         length,
-                                                         &coarsePeakMag,
-                                                         &runnerUpFreq,
-                                                         &runnerUpPeakMag);
-
-    coarseDf  = (HEART_RATE_GUIDE_FREQ_MAX_HZ - HEART_RATE_GUIDE_FREQ_MIN_HZ) / (float)length;
-    fineStart = coarseFreq - ((float)HEART_RATE_FINE_SEARCH_HALF_BINS * coarseDf);
-    fineEnd   = coarseFreq + ((float)HEART_RATE_FINE_SEARCH_HALF_BINS * coarseDf);
-
-    if (fineStart < HEART_RATE_GUIDE_FREQ_MIN_HZ)
-    {
-        fineStart = HEART_RATE_GUIDE_FREQ_MIN_HZ;
-    }
-    if (fineEnd > HEART_RATE_GUIDE_FREQ_MAX_HZ)
-    {
-        fineEnd = HEART_RATE_GUIDE_FREQ_MAX_HZ;
-    }
-
-    fineFreq = HeartRate_findPeakFrequency(gHeartRateScratch.heartSignal,
-                                           length,
-                                           ctx->sampleRateHz,
-                                           fineStart,
-                                           fineEnd,
-                                           length,
-                                           &finePeakMag);
-    candidateFreq    = fineFreq;
-    candidatePeakMag = finePeakMag;
-
-    if (ctx->trackedHeartRateValid != 0U)
-    {
-        trackedStart = ctx->trackedHeartRateHz - HEART_RATE_TRACK_HALF_SPAN_HZ;
-        trackedEnd   = ctx->trackedHeartRateHz + HEART_RATE_TRACK_HALF_SPAN_HZ;
-        if (trackedStart < HEART_RATE_GUIDE_FREQ_MIN_HZ)
-        {
-            trackedStart = HEART_RATE_GUIDE_FREQ_MIN_HZ;
-        }
-        if (trackedEnd > HEART_RATE_GUIDE_FREQ_MAX_HZ)
-        {
-            trackedEnd = HEART_RATE_GUIDE_FREQ_MAX_HZ;
-        }
-        if (trackedEnd > trackedStart)
-        {
-            trackedFreq = HeartRate_findPeakFrequency(gHeartRateScratch.heartSignal,
-                                                      length,
-                                                      ctx->sampleRateHz,
-                                                      trackedStart,
-                                                      trackedEnd,
-                                                      (uint16_t)(2U * length),
-                                                      &trackedPeakMag);
-            if (trackedPeakMag >= (HEART_RATE_TRACK_KEEP_RATIO * finePeakMag))
-            {
-                fineFreq    = trackedFreq;
-                finePeakMag = trackedPeakMag;
-                trackSelected = 1U;
-            }
-        }
-        candidateFreq    = fineFreq;
-        candidatePeakMag = finePeakMag;
-
-        /* Require persistence before allowing a cross-family switch far away from the tracked band. */
-        if (fabsf(candidateFreq - ctx->trackedHeartRateHz) > HEART_RATE_SWITCH_GUARD_HZ)
-        {
-            if ((ctx->pendingSwitchCount == 0U) ||
-                (fabsf(candidateFreq - ctx->pendingSwitchHeartRateHz) > HEART_RATE_SWITCH_CONFIRM_TOL_HZ))
-            {
-                ctx->pendingSwitchHeartRateHz = candidateFreq;
-                ctx->pendingSwitchCount       = 1U;
-            }
-            else if (ctx->pendingSwitchCount < 0xFFFFU)
-            {
-                ctx->pendingSwitchCount++;
-            }
-
-            if (ctx->pendingSwitchCount < HEART_RATE_SWITCH_CONFIRM_COUNT)
-            {
-                fineFreq    = ctx->trackedHeartRateHz;
-                finePeakMag = (trackedPeakMag > 0.0f) ? trackedPeakMag : candidatePeakMag;
-            }
-            else
-            {
-                ctx->pendingSwitchCount       = 0U;
-                ctx->pendingSwitchHeartRateHz = candidateFreq;
-            }
-        }
-        else
-        {
-            ctx->pendingSwitchCount       = 0U;
-            ctx->pendingSwitchHeartRateHz = candidateFreq;
-        }
-
-        if (fineFreq > (ctx->trackedHeartRateHz + HEART_RATE_MAX_STEP_HZ))
-        {
-            fineFreq = ctx->trackedHeartRateHz + HEART_RATE_MAX_STEP_HZ;
-            stepLimited = 1U;
-        }
-        else if (fineFreq < (ctx->trackedHeartRateHz - HEART_RATE_MAX_STEP_HZ))
-        {
-            fineFreq = ctx->trackedHeartRateHz - HEART_RATE_MAX_STEP_HZ;
-            stepLimited = 1U;
-        }
-    }
-
-    signalPower = 0.0f;
-    for (sampleIdx = 0U; sampleIdx < length; sampleIdx++)
-    {
-        signalPower += gHeartRateScratch.heartSignal[sampleIdx] * gHeartRateScratch.heartSignal[sampleIdx];
-    }
-    signalPower /= (float)length;
-
-    ctx->output.heartRateHz  = fineFreq;
-    ctx->output.heartRateBpm = fineFreq * 60.0f;
-    ctx->output.confidence   = finePeakMag / (signalPower + 1.0e-3f);
-    ctx->output.valid        = (uint16_t)((ctx->output.heartRateBpm >= HEART_RATE_MIN_BPM) &&
-                                   (ctx->output.heartRateBpm <= HEART_RATE_MAX_BPM));
-    if (ctx->output.valid != 0U)
-    {
-        ctx->trackedHeartRateHz    = fineFreq;
-        ctx->trackedHeartRateValid = 1U;
-    }
-    ctx->debugOutput.guideFreq       = guideFreq;
-    ctx->debugOutput.vmeGuideFreq    = vmeGuideFreq;
-    ctx->debugOutput.coarseFreq      = coarseFreq;
-    ctx->debugOutput.runnerUpFreq    = runnerUpFreq;
-    ctx->debugOutput.fineFreq        = fineFreq;
-    ctx->debugOutput.trackedFreq     = trackedFreq;
-    ctx->debugOutput.coarsePeakMag   = coarsePeakMag;
-    ctx->debugOutput.runnerUpPeakMag = runnerUpPeakMag;
-    ctx->debugOutput.finePeakMag     = finePeakMag;
-    ctx->debugOutput.trackedPeakMag  = trackedPeakMag;
-    ctx->debugOutput.signalPower     = signalPower;
-    if (coarsePeakMag > 0.0f)
-    {
-        ctx->debugOutput.competitionRatio = runnerUpPeakMag / coarsePeakMag;
-    }
-    else
-    {
-        ctx->debugOutput.competitionRatio = 0.0f;
-    }
-    ctx->debugOutput.guideVmeGapHz    = fabsf(guideFreq - vmeGuideFreq);
-    ctx->debugOutput.coarseFineGapHz  = fabsf(coarseFreq - fineFreq);
-    ctx->debugOutput.trackedFineGapHz = fabsf(trackedFreq - fineFreq);
-    ctx->debugOutput.vmeLastRelErr   = vmeLastRelErr;
-    ctx->debugOutput.estimateSeq     = ++gHeartRateEstimateSeq;
-    ctx->debugOutput.vmeIterations   = vmeIterations;
-    ctx->debugOutput.trackSelected   = trackSelected;
-    ctx->debugOutput.stepLimited     = stepLimited;
-    ctx->debugOutput.valid           = ctx->output.valid;
-
-    outputChanged = 1U;
-    ctx->outputDirty = outputChanged;
-}
-
-static void HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
-                                     const HeartRateDssInfo *heartInfo)
-{
-    uint16_t rangeIdx;
-    uint16_t numRangeBins;
-    uint16_t searchMaxBin;
-    uint16_t bestBin;
-    uint16_t slowTimeSamplePushed;
-    uint8_t  wasFilled;
-    uint32_t deltaCycles;
-    float    alpha;
-    float    frameDtSec;
-    float    windowTimeSec;
-    float    frameSamplesPerHeartSample;
-    float    reVal;
-    float    imVal;
-    float    mtiRe;
-    float    mtiIm;
-    float    selectedRe;
-    float    selectedIm;
-
-    if ((heartInfo == NULL) || (ctx->windowLength == 0U))
-    {
-        return;
-    }
-
-    numRangeBins = heartInfo->numRangeBins;
-    if (numRangeBins > HEART_RATE_MAX_RANGE_BINS)
-    {
-        numRangeBins = HEART_RATE_MAX_RANGE_BINS;
-    }
-
-    if ((ctx->numRangeBins != numRangeBins) ||
-        (ctx->rangeStep != heartInfo->rangeStep))
-    {
-        ctx->numRangeBins = numRangeBins;
-        ctx->rangeStep    = heartInfo->rangeStep;
-        HeartRate_resetCtx(ctx);
-        ctx->numRangeBins = numRangeBins;
-        ctx->rangeStep    = heartInfo->rangeStep;
-    }
-
-    deltaCycles = heartInfo->frameStartTimeStamp - ctx->prevFrameStartTimeStamp;
-    if ((ctx->prevFrameStartTimeStamp != 0U) && (deltaCycles != 0U))
-    {
-        frameDtSec        = (float)deltaCycles / HEART_RATE_DSS_TIMESTAMP_HZ;
-        ctx->frameRateHz  = 1.0f / frameDtSec;
-    }
-    else
-    {
-        frameDtSec = ctx->framePeriodSec;
-    }
-    ctx->prevFrameStartTimeStamp = heartInfo->frameStartTimeStamp;
-
-    if ((ctx->frameRateHz <= 0.0f) && (ctx->framePeriodSec > 0.0f))
-    {
-        ctx->frameRateHz = 1.0f / ctx->framePeriodSec;
-    }
-    if ((ctx->sampleRateHz <= 0.0f) && (ctx->frameRateHz > 0.0f))
-    {
-        ctx->sampleRateHz = ctx->frameRateHz;
-    }
-    if ((ctx->targetSampleRateHz > 0.0f) &&
-        (ctx->frameRateHz > ctx->targetSampleRateHz))
-    {
-        ctx->sampleRateHz = ctx->targetSampleRateHz;
-    }
-
-    if ((ctx->sampleRateHz > 0.0f) && (ctx->windowLength > 0U))
-    {
-        windowTimeSec = (float)ctx->windowLength / ctx->sampleRateHz;
-    }
-    else
-    {
-        windowTimeSec = 0.0f;
-    }
-    if ((windowTimeSec > 0.0f) && (frameDtSec > 0.0f))
-    {
-        alpha = frameDtSec / windowTimeSec;
-    }
-    else
-    {
-        alpha = 1.0f / (float)ctx->windowLength;
-    }
-    if (alpha > 1.0f)
-    {
-        alpha = 1.0f;
-    }
-    bestBin    = HEART_RATE_RANGE_BIN_SKIP;
-    selectedRe = 0.0f;
-    selectedIm = 0.0f;
-    slowTimeSamplePushed = 0U;
-    wasFilled  = ctx->isFilled;
-    searchMaxBin = numRangeBins;
-    if ((ctx->rangeStep > 0.0f) &&
-        (((float)searchMaxBin * ctx->rangeStep) > 2.5f))
-    {
-        searchMaxBin = (uint16_t)(2.5f / ctx->rangeStep);
-        if (searchMaxBin > numRangeBins)
-        {
-            searchMaxBin = numRangeBins;
-        }
-    }
-    if (searchMaxBin <= HEART_RATE_RANGE_BIN_SKIP)
-    {
-        searchMaxBin = numRangeBins;
-    }
-
-    for (rangeIdx = 0U; rangeIdx < numRangeBins; rangeIdx++)
-    {
-        reVal = (float)heartInfo->rangeProfileRe[rangeIdx];
-        imVal = (float)heartInfo->rangeProfileIm[rangeIdx];
-
-        mtiRe = reVal - ctx->rangeMeanRe[rangeIdx];
-        mtiIm = imVal - ctx->rangeMeanIm[rangeIdx];
-
-        ctx->rangeMeanRe[rangeIdx] += alpha * mtiRe;
-        ctx->rangeMeanIm[rangeIdx] += alpha * mtiIm;
-        ctx->energyAccum[rangeIdx] += alpha * (HeartRate_magSq(mtiRe, mtiIm) - ctx->energyAccum[rangeIdx]);
-
-        if ((rangeIdx >= HEART_RATE_RANGE_BIN_SKIP) &&
-            (rangeIdx < searchMaxBin) &&
-            ((bestBin == HEART_RATE_RANGE_BIN_SKIP) ||
-             (ctx->energyAccum[rangeIdx] > ctx->energyAccum[bestBin])))
-        {
-            bestBin   = rangeIdx;
-            selectedRe = mtiRe;
-            selectedIm = mtiIm;
-        }
-    }
-
-    if ((ctx->selectedRangeBin != 0xFFFFU) &&
-        (bestBin != ctx->selectedRangeBin) &&
-        (ctx->energyAccum[bestBin] < (1.10f * ctx->energyAccum[ctx->selectedRangeBin])))
-    {
-        bestBin = ctx->selectedRangeBin;
-        selectedRe = (float)heartInfo->rangeProfileRe[bestBin] - ctx->rangeMeanRe[bestBin];
-        selectedIm = (float)heartInfo->rangeProfileIm[bestBin] - ctx->rangeMeanIm[bestBin];
-    }
-
-    if (ctx->selectedRangeBin != bestBin)
-    {
-        ctx->selectedRangeBin = bestBin;
-        ctx->sampleCount      = 0U;
-        ctx->nextIndex        = 0U;
-        ctx->slowTimeAccumCount = 0U;
-        ctx->samplesSinceEstimate = 0U;
-        ctx->isFilled         = 0U;
-        ctx->slowTimeAccumRe  = 0.0f;
-        ctx->slowTimeAccumIm  = 0.0f;
-        ctx->output.valid     = 0U;
-        ctx->trackedHeartRateValid = 0U;
-        ctx->pendingSwitchCount = 0U;
-        ctx->pendingSwitchHeartRateHz = 0.0f;
-        ctx->outputDirty      = 1U;
-    }
-
-    if (ctx->selectedRangeBin < numRangeBins)
-    {
-        frameSamplesPerHeartSample = 1.0f;
-        if ((ctx->sampleRateHz > 0.0f) && (ctx->frameRateHz > ctx->sampleRateHz))
-        {
-            frameSamplesPerHeartSample = ctx->frameRateHz / ctx->sampleRateHz;
-        }
-        ctx->slowTimeAccumRe += selectedRe;
-        ctx->slowTimeAccumIm += selectedIm;
-        ctx->slowTimeAccumCount++;
-        if ((ctx->slowTimeAccumCount >= (uint16_t)(frameSamplesPerHeartSample + 0.5f)) ||
-            (frameSamplesPerHeartSample <= 1.0f))
-        {
-            HeartRate_pushSlowTimeSample(ctx,
-                                         ctx->slowTimeAccumRe / (float)ctx->slowTimeAccumCount,
-                                         ctx->slowTimeAccumIm / (float)ctx->slowTimeAccumCount);
-            slowTimeSamplePushed = 1U;
-            ctx->slowTimeAccumCount = 0U;
-            ctx->slowTimeAccumRe    = 0.0f;
-            ctx->slowTimeAccumIm    = 0.0f;
-        }
-    }
-
-    ctx->output.selectedRangeBin = ctx->selectedRangeBin;
-    ctx->output.sampleRateHz     = ctx->sampleRateHz;
-    ctx->output.windowLength     = ctx->windowLength;
-    if (ctx->selectedRangeBin < numRangeBins)
-    {
-        ctx->output.rangeMeters = ((float)ctx->selectedRangeBin) * ctx->rangeStep;
-    }
-    else
-    {
-        ctx->output.rangeMeters = 0.0f;
-    }
-
-    if (slowTimeSamplePushed != 0U)
-    {
-        ctx->samplesSinceEstimate++;
-        if ((ctx->isFilled == 0U) && (ctx->samplesSinceEstimate >= ctx->estimateStrideSamples))
-        {
-            ctx->outputDirty = 1U;
-            ctx->samplesSinceEstimate = 0U;
-        }
-        else if (((wasFilled == 0U) && (ctx->isFilled != 0U)) ||
-                 ((ctx->isFilled != 0U) && (ctx->samplesSinceEstimate >= ctx->estimateStrideSamples)))
-        {
-            HeartRate_estimateForWindow(ctx);
-            ctx->samplesSinceEstimate = 0U;
-        }
-    }
-}
-
-/**************************************************************************
- *************************** Extern Definitions ***************************
- **************************************************************************/
 
 extern void MmwDemo_CLIInit(uint8_t taskPriority);
 
@@ -1890,9 +768,10 @@ static uint32_t HeartRate_buildUartPacket(const HeartRateTxSnapshot *snapshot,
                                           uint8_t                   *packetBuf,
                                           uint32_t                   packetBufSize);
 static void     HeartRate_submitUartSnapshot(uint32_t frameNumber,
-                                             uint8_t subFrameIdx,
-                                             const HeartRateOutput *output,
-                                             const HeartRateDebugOutput *debugOutput);
+                                             uint8_t  subFrameIdx,
+                                             uint8_t  sendHeartRate,
+                                             uint8_t  sendHeartRateDebug,
+                                             const HeartRateDssResult *heartRateResult);
 static void     HeartRate_uartTxTask(UArg arg0, UArg arg1);
 
 static void    MmwDemo_measurementResultOutput(DPU_AoAProc_compRxChannelBiasCfg *compRxChanCfg);
@@ -1902,50 +781,6 @@ static int32_t MmwDemo_DPM_ioctl_blocking(
     void      *arg,
     uint32_t   argLen);
 static int32_t MmwDemo_processPendingDynamicCfgCommands(uint8_t subFrameIndx);
-static void    HeartRate_resetCtx(HeartRateMssCtx *ctx);
-static void    HeartRate_updateSlowTime(HeartRateMssCtx *ctx,
-                                        const HeartRateDssInfo *heartInfo);
-static void    HeartRate_estimateForWindow(HeartRateMssCtx *ctx);
-static float   HeartRate_magSq(float re, float im);
-static void    HeartRate_computeBandpassBiquad(float fs,
-                                               float fLow,
-                                               float fHigh,
-                                               float *b0,
-                                               float *b1,
-                                               float *b2,
-                                               float *a1,
-                                               float *a2);
-static void    HeartRate_applyBiquadForwardBackward(const float *input,
-                                                    float *scratch,
-                                                    float *output,
-                                                    uint16_t length,
-                                                    float b0,
-                                                    float b1,
-                                                    float b2,
-                                                    float a1,
-                                                    float a2);
-static void    HeartRate_applyBiquad(const float *input,
-                                     float *output,
-                                     uint16_t length,
-                                     float b0,
-                                     float b1,
-                                     float b2,
-                                     float a1,
-                                     float a2);
-static float   HeartRate_findPeakFrequency(const float *signal,
-                                           uint16_t length,
-                                           float fs,
-                                           float fMin,
-                                           float fMax,
-                                           uint16_t numGrid,
-                                           float *peakMagOut);
-static float   HeartRate_runVME(const float *phaseRaw,
-                                uint16_t length,
-                                float fs,
-                                float guideFreq,
-                                float *heartSignalOut,
-                                uint16_t *iterationsOut,
-                                float *relErrOut);
 
 static void MmwDemo_initTask(UArg arg0, UArg arg1);
 static void MmwDemo_platformInit(MmwDemo_platformCfg *config);
@@ -2805,9 +1640,13 @@ static void MmwDemo_transmitProcessedOutput
 void TrackerDemo_transmitProcessedOutput(UART_Handle                        uartHandle,
                                          DPC_ObjectDetection_ExecuteResult *result)
 {
-    int32_t            errCode;
-    HeartRateMssCtx   *heartCtx;
+    HeartRateMssState *heartState;
     DPC_ObjectDetection_Stats *stats;
+    uint8_t sendHeartRate;
+    uint8_t sendHeartRateDebug;
+    uint32_t framePeriodUsec;
+    uint8_t shouldSend;
+    int32_t errCode;
 
     (void)uartHandle;
 
@@ -2816,20 +1655,51 @@ void TrackerDemo_transmitProcessedOutput(UART_Handle                        uart
                                                               &errCode);
     DebugP_assert((uint32_t)stats != SOC_TRANSLATEADDR_INVALID);
 
-    heartCtx = &gHeartRateCtx[result->subFrameIdx];
-    if ((HEART_RATE_UART_HR_ONLY != 0U) &&
-        (heartCtx->outputDirty == 0U))
+    heartState        = &gHeartRateState[result->subFrameIdx];
+    sendHeartRate     = MMWDEMO_HEART_RATE_TLV1001_ENABLE;
+    sendHeartRateDebug = MMWDEMO_HEART_RATE_TLV1002_ENABLE;
+
+    if ((sendHeartRate == 0U) && (sendHeartRateDebug == 0U))
     {
         return;
     }
 
-    if (HEART_RATE_UART_HR_ONLY != 0U)
+    framePeriodUsec = heartState->framePeriodUsec;
+    if (framePeriodUsec == 0U)
     {
-        HeartRate_submitUartSnapshot(stats->frameStartIntCounter,
-                                     result->subFrameIdx,
-                                     &heartCtx->output,
-                                     &heartCtx->debugOutput);
+        framePeriodUsec = MMWDEMO_HEART_RATE_TX_PERIOD_USEC;
     }
+
+    shouldSend = 0U;
+    if (heartState->txPrimed == 0U)
+    {
+        heartState->txPrimed    = 1U;
+        heartState->txAccumUsec = 0U;
+        shouldSend              = 1U;
+    }
+    else
+    {
+        if (heartState->txAccumUsec < MMWDEMO_HEART_RATE_TX_PERIOD_USEC)
+        {
+            heartState->txAccumUsec += framePeriodUsec;
+        }
+        if (heartState->txAccumUsec >= MMWDEMO_HEART_RATE_TX_PERIOD_USEC)
+        {
+            heartState->txAccumUsec -= MMWDEMO_HEART_RATE_TX_PERIOD_USEC;
+            shouldSend              = 1U;
+        }
+    }
+
+    if (shouldSend == 0U)
+    {
+        return;
+    }
+
+    HeartRate_submitUartSnapshot(stats->frameStartIntCounter,
+                                 result->subFrameIdx,
+                                 sendHeartRate,
+                                 sendHeartRateDebug,
+                                 &heartState->latestResult);
 }
 
 static uint32_t HeartRate_buildUartPacket(const HeartRateTxSnapshot *snapshot,
@@ -2842,16 +1712,29 @@ static uint32_t HeartRate_buildUartPacket(const HeartRateTxSnapshot *snapshot,
     uint32_t                      paddedLen;
     uint32_t                      offset;
     uint32_t                      numPaddingBytes;
+    uint32_t                      numTlvs;
 
     if ((snapshot == NULL) || (packetBuf == NULL))
     {
         return 0U;
     }
 
-    packetLen = sizeof(MmwDemo_output_message_header) +
-                (2U * sizeof(MmwDemo_output_message_tl)) +
-                sizeof(HeartRateOutput) +
-                sizeof(HeartRateDebugOutput);
+    numTlvs   = 0U;
+    packetLen = sizeof(MmwDemo_output_message_header);
+    if (snapshot->sendHeartRate != 0U)
+    {
+        packetLen += sizeof(MmwDemo_output_message_tl) + sizeof(HeartRateOutput);
+        numTlvs++;
+    }
+    if (snapshot->sendHeartRateDebug != 0U)
+    {
+        packetLen += sizeof(MmwDemo_output_message_tl) + sizeof(HeartRateDebugOutput);
+        numTlvs++;
+    }
+    if (numTlvs == 0U)
+    {
+        return 0U;
+    }
     paddedLen = MMWDEMO_OUTPUT_MSG_SEGMENT_LEN *
                 ((packetLen + (MMWDEMO_OUTPUT_MSG_SEGMENT_LEN - 1U)) / MMWDEMO_OUTPUT_MSG_SEGMENT_LEN);
     if (paddedLen > packetBufSize)
@@ -2873,26 +1756,32 @@ static uint32_t HeartRate_buildUartPacket(const HeartRateTxSnapshot *snapshot,
     header.frameNumber      = snapshot->frameNumber;
     header.timeCpuCycles    = Cycleprofiler_getTimeStamp();
     header.numDetectedObj   = 0U;
-    header.numTLVs          = 2U;
+    header.numTLVs          = numTlvs;
     header.subFrameNumber   = snapshot->subFrameIdx;
 
     offset = 0U;
     memcpy((void *)&packetBuf[offset], (void *)&header, sizeof(header));
     offset += sizeof(header);
 
-    tlv.type   = MMWDEMO_OUTPUT_MSG_HEART_RATE;
-    tlv.length = sizeof(HeartRateOutput);
-    memcpy((void *)&packetBuf[offset], (void *)&tlv, sizeof(tlv));
-    offset += sizeof(tlv);
-    memcpy((void *)&packetBuf[offset], (void *)&snapshot->output, sizeof(HeartRateOutput));
-    offset += sizeof(HeartRateOutput);
+    if (snapshot->sendHeartRate != 0U)
+    {
+        tlv.type   = MMWDEMO_OUTPUT_MSG_HEART_RATE;
+        tlv.length = sizeof(HeartRateOutput);
+        memcpy((void *)&packetBuf[offset], (void *)&tlv, sizeof(tlv));
+        offset += sizeof(tlv);
+        memcpy((void *)&packetBuf[offset], (void *)&snapshot->output, sizeof(HeartRateOutput));
+        offset += sizeof(HeartRateOutput);
+    }
 
-    tlv.type   = MMWDEMO_OUTPUT_MSG_HEART_RATE_DEBUG;
-    tlv.length = sizeof(HeartRateDebugOutput);
-    memcpy((void *)&packetBuf[offset], (void *)&tlv, sizeof(tlv));
-    offset += sizeof(tlv);
-    memcpy((void *)&packetBuf[offset], (void *)&snapshot->debug, sizeof(HeartRateDebugOutput));
-    offset += sizeof(HeartRateDebugOutput);
+    if (snapshot->sendHeartRateDebug != 0U)
+    {
+        tlv.type   = MMWDEMO_OUTPUT_MSG_HEART_RATE_DEBUG;
+        tlv.length = sizeof(HeartRateDebugOutput);
+        memcpy((void *)&packetBuf[offset], (void *)&tlv, sizeof(tlv));
+        offset += sizeof(tlv);
+        memcpy((void *)&packetBuf[offset], (void *)&snapshot->debug, sizeof(HeartRateDebugOutput));
+        offset += sizeof(HeartRateDebugOutput);
+    }
 
     numPaddingBytes = paddedLen - offset;
     if (numPaddingBytes > 0U)
@@ -2904,27 +1793,33 @@ static uint32_t HeartRate_buildUartPacket(const HeartRateTxSnapshot *snapshot,
 }
 
 static void HeartRate_submitUartSnapshot(uint32_t frameNumber,
-                                         uint8_t subFrameIdx,
-                                         const HeartRateOutput *output,
-                                         const HeartRateDebugOutput *debugOutput)
+                                         uint8_t  subFrameIdx,
+                                         uint8_t  sendHeartRate,
+                                         uint8_t  sendHeartRateDebug,
+                                         const HeartRateDssResult *heartRateResult)
 {
+    HeartRateMssState  *heartState;
     UInt key;
     HeartRateTxSnapshot localSnapshot;
 
-    if ((output == NULL) || (debugOutput == NULL))
+    if ((heartRateResult == NULL) || ((sendHeartRate == 0U) && (sendHeartRateDebug == 0U)))
     {
         return;
     }
 
-    localSnapshot.subFrameIdx = subFrameIdx;
-    localSnapshot.output      = *output;
-    localSnapshot.debug       = *debugOutput;
-    localSnapshot.frameNumber = frameNumber;
+    heartState = &gHeartRateState[subFrameIdx];
+
+    localSnapshot.subFrameIdx      = subFrameIdx;
+    localSnapshot.sendHeartRate    = sendHeartRate;
+    localSnapshot.sendHeartRateDebug = sendHeartRateDebug;
+    localSnapshot.output           = heartRateResult->output;
+    localSnapshot.debug            = heartRateResult->debugOutput;
+    localSnapshot.frameNumber      = frameNumber;
     localSnapshot.debug.interFrameProcTimeUsec =
         gMmwMssMCB.subFrameStats[subFrameIdx].outputStats.interFrameProcessingTime;
     localSnapshot.debug.interFrameProcMarginUsec =
         gMmwMssMCB.subFrameStats[subFrameIdx].outputStats.interFrameProcessingMargin;
-    localSnapshot.debug.txWriteTimeUsec  = gHeartRateCtx[subFrameIdx].debugOutput.txWriteTimeUsec;
+    localSnapshot.debug.txWriteTimeUsec  = heartState->lastTxWriteTimeUsec;
     localSnapshot.debug.txOverwriteCount = gHeartRateTxOverwriteCount;
     localSnapshot.packetLen = 1U;
 
@@ -2935,10 +1830,6 @@ static void HeartRate_submitUartSnapshot(uint32_t frameNumber,
         localSnapshot.debug.txOverwriteCount = gHeartRateTxOverwriteCount;
     }
     gHeartRateTxSnapshot = localSnapshot;
-    gHeartRateCtx[subFrameIdx].lastTxHeartRateHz = output->heartRateHz;
-    gHeartRateCtx[subFrameIdx].lastTxValid       = output->valid;
-    gHeartRateCtx[subFrameIdx].hasSentOutput     = 1U;
-    gHeartRateCtx[subFrameIdx].outputDirty       = 0U;
     Task_restore(key);
 
     Semaphore_post(gMmwMssMCB.uartTxSemHandle);
@@ -2980,8 +1871,7 @@ static void HeartRate_uartTxTask(UArg arg0, UArg arg1)
 
         subFrameIdx = localSnapshot.subFrameIdx;
         key = Task_disable();
-        gHeartRateCtx[subFrameIdx].debugOutput.txWriteTimeUsec = txElapsedUsec;
-        gHeartRateCtx[subFrameIdx].debugOutput.txOverwriteCount = gHeartRateTxOverwriteCount;
+        gHeartRateState[subFrameIdx].lastTxWriteTimeUsec = txElapsedUsec;
         Task_restore(key);
     }
 }
@@ -3365,7 +2255,7 @@ static int32_t MmwDemo_dataPathConfig(void)
     MmwDemo_SubFrameCfg                          *subFrameCfg;
     int8_t                                        subFrameIndx;
     MmwDemo_RFParserOutParams                     RFparserOutParams;
-    HeartRateMssCtx                              *heartCtx;
+    HeartRateMssState                            *heartState;
     DPC_ObjectDetectionRangeHWA_PreStartCfg       objDetPreStartR4fCfg;
     DPC_ObjectDetectionRangeHWA_StaticCfg        *staticCfg;
     DPC_ObjectDetection_PreStartCfg               objDetPreStartDspCfg;
@@ -3376,6 +2266,8 @@ static int32_t MmwDemo_dataPathConfig(void)
 
     objDetCommonCfg = &gMmwMssMCB.objDetCommonCfg;
     staticCfg       = &objDetPreStartR4fCfg.staticCfg;
+    memset((void *)&gHeartRateTxSnapshot, 0, sizeof(gHeartRateTxSnapshot));
+    gHeartRateTxOverwriteCount = 0U;
 
     /* Get RF frequency scale factor */
     gMmwMssMCB.rfFreqScaleFactor = SOC_getDeviceRFFreqScaleFactor(gMmwMssMCB.socHandle, &errCode);
@@ -3470,46 +2362,16 @@ static int32_t MmwDemo_dataPathConfig(void)
         subFrameCfg->numChirpsPerSubFrame                              = RFparserOutParams.numChirpsPerFrame;
         subFrameCfg->numVirtualAntennas                                = RFparserOutParams.numVirtualAntennas;
 
-        heartCtx = &gHeartRateCtx[subFrameIndx];
-        heartCtx->framePeriodSec = RFparserOutParams.framePeriod * 0.001f;
-        if (heartCtx->framePeriodSec > 0.0f)
+        heartState = &gHeartRateState[subFrameIndx];
+        memset((void *)heartState, 0, sizeof(HeartRateMssState));
+        if (RFparserOutParams.framePeriod > 0.0f)
         {
-            heartCtx->frameRateHz = 1.0f / heartCtx->framePeriodSec;
+            heartState->framePeriodUsec = (uint32_t)((RFparserOutParams.framePeriod * 1000.0f) + 0.5f);
         }
-        else
+        if (heartState->framePeriodUsec == 0U)
         {
-            heartCtx->frameRateHz = 0.0f;
+            heartState->framePeriodUsec = MMWDEMO_HEART_RATE_TX_PERIOD_USEC;
         }
-        heartCtx->targetSampleRateHz = HEART_RATE_TARGET_SAMPLE_RATE_HZ;
-        heartCtx->sampleRateHz       = heartCtx->frameRateHz;
-        if ((heartCtx->targetSampleRateHz > 0.0f) &&
-            (heartCtx->frameRateHz > heartCtx->targetSampleRateHz))
-        {
-            heartCtx->sampleRateHz = heartCtx->targetSampleRateHz;
-        }
-        heartCtx->estimateStrideSamples =
-            (uint16_t)((HEART_RATE_ESTIMATE_STEP_SECONDS * heartCtx->sampleRateHz) + 0.5f);
-        if (heartCtx->estimateStrideSamples == 0U)
-        {
-            heartCtx->estimateStrideSamples = 1U;
-        }
-        heartCtx->windowLength =
-            (uint16_t)((HEART_RATE_DEFAULT_WINDOW_SECONDS * heartCtx->sampleRateHz) + 0.5f);
-        if (heartCtx->windowLength == 0U)
-        {
-            heartCtx->windowLength = 1U;
-        }
-        if (heartCtx->windowLength > HEART_RATE_MAX_WINDOW_SAMPLES)
-        {
-            heartCtx->windowLength = HEART_RATE_MAX_WINDOW_SAMPLES;
-        }
-        heartCtx->numRangeBins = (uint16_t)RFparserOutParams.numRangeBins;
-        if (heartCtx->numRangeBins > HEART_RATE_MAX_RANGE_BINS)
-        {
-            heartCtx->numRangeBins = HEART_RATE_MAX_RANGE_BINS;
-        }
-        heartCtx->rangeStep = RFparserOutParams.rangeStep;
-        HeartRate_resetCtx(heartCtx);
 
         errCode = MmwDemo_ADCBufConfig(gMmwMssMCB.adcBufHandle,
                                        gMmwMssMCB.cfg.openCfg.chCfg.rxChannelEn,
@@ -4490,7 +3352,8 @@ static void MmwDemo_handleObjectDetResult(
     DPC_ObjectDetection_ExecuteResultExportedInfo exportInfo;
     DPC_ObjectDetection_ExecuteResult            *dpcResults;
     MmwDemo_output_message_stats                 *frameStats;
-    HeartRateDssInfo                             *heartInfo;
+    HeartRateDssResult                           *heartRateResult;
+    HeartRateMssState                            *heartState;
     volatile uint32_t                             startTime;
     uint8_t                                       nextSubFrameIdx;
     uint8_t                                       numSubFrames;
@@ -4562,14 +3425,21 @@ static void MmwDemo_handleObjectDetResult(
                                                                       &retVal);
     DebugP_assert((uint32_t)frameStats != SOC_TRANSLATEADDR_INVALID);
 
-    heartInfo = NULL;
-    if ((ptrResult->size[2] == sizeof(HeartRateDssInfo)) && (ptrResult->ptrBuffer[2] != NULL))
+    heartRateResult = NULL;
+    if ((ptrResult->size[2] == sizeof(HeartRateDssResult)) && (ptrResult->ptrBuffer[2] != NULL))
     {
-        heartInfo = (HeartRateDssInfo *)SOC_translateAddress((uint32_t)ptrResult->ptrBuffer[2],
-                                                             SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
-                                                             &retVal);
-        DebugP_assert((uint32_t)heartInfo != SOC_TRANSLATEADDR_INVALID);
-        HeartRate_updateSlowTime(&gHeartRateCtx[currSubFrameIdx], heartInfo);
+        heartRateResult = (HeartRateDssResult *)SOC_translateAddress((uint32_t)ptrResult->ptrBuffer[2],
+                                                                     SOC_TranslateAddr_Dir_FROM_OTHER_CPU,
+                                                                     &retVal);
+        DebugP_assert((uint32_t)heartRateResult != SOC_TRANSLATEADDR_INVALID);
+
+        heartState = &gHeartRateState[currSubFrameIdx];
+        heartState->latestResult = *heartRateResult;
+        if ((heartRateResult->snapshotSeq != 0U) &&
+            (heartRateResult->snapshotSeq != heartState->lastRxSnapshotSeq))
+        {
+            heartState->lastRxSnapshotSeq = heartRateResult->snapshotSeq;
+        }
     }
 
     /* Update current frame stats */

@@ -93,6 +93,7 @@
 #include <mmw_output.h>
 #include <mmw_dss.h>
 #include <mmw_res.h>
+#include "heart_rate_dss_proc.h"
 
 /* Demo Profiling Include Files */
 #include <ti/utils/cycleprofiler/cycle_profiler.h>
@@ -102,8 +103,16 @@
  */
 #define MMWDEMO_DPC_OBJDET_DPM_TASK_PRIORITY 5
 
+#define MMWDEMO_HEART_RATE_L3_ALIGN_PAD 64U
+#define MMWDEMO_HEART_RATE_L3_SIZE      ((RL_MAX_SUBFRAMES * \
+                                          (sizeof(HeartRateDssInfo) + \
+                                           sizeof(HeartRateDssCtx) + \
+                                           sizeof(HeartRateDssScratch) + \
+                                           sizeof(HeartRateDssResult))) + \
+                                         MMWDEMO_HEART_RATE_L3_ALIGN_PAD)
+
 /*! L3 RAM buffer for object detection DPC */
-#define MMWDEMO_L3SRAM_SIZE (SOC_L3RAM_SIZE - MMWAVE_L3_CODEMEM_SIZE)
+#define MMWDEMO_L3SRAM_SIZE (SOC_L3RAM_SIZE - MMWAVE_L3_CODEMEM_SIZE - MMWDEMO_HEART_RATE_L3_SIZE)
 
 uint8_t gMmwL3[MMWDEMO_L3SRAM_SIZE];
 #pragma DATA_SECTION(gMmwL3, ".l3ram");
@@ -170,7 +179,7 @@ static int32_t MmwDemo_copyResultToHSRAM(
     MmwDemo_HSRAM                     *ptrHsramBuffer,
     DPC_ObjectDetection_ExecuteResult *result,
     MmwDemo_output_message_stats      *outStats,
-    HeartRateDssInfo                  *heartInfo);
+    HeartRateDssResult                *heartRateResult);
 static void MmwDemo_DPC_ObjectDetection_dpmTask(UArg arg0, UArg arg1);
 static void MmwDemo_sensorStopEpilog(void);
 
@@ -538,7 +547,7 @@ static int32_t MmwDemo_copyResultToHSRAM(
     MmwDemo_HSRAM                     *ptrHsramBuffer,
     DPC_ObjectDetection_ExecuteResult *result,
     MmwDemo_output_message_stats      *outStats,
-    HeartRateDssInfo                  *heartInfo)
+    HeartRateDssResult                *heartRateResult)
 {
     uint8_t *ptrCurrBuffer;
     uint32_t totalHsramSize;
@@ -568,14 +577,14 @@ static int32_t MmwDemo_copyResultToHSRAM(
         memcpy((void *)&ptrHsramBuffer->outStats, (void *)outStats, itemPayloadLen);
     }
 
-    if (heartInfo != NULL)
+    if (heartRateResult != NULL)
     {
-        itemPayloadLen = sizeof(HeartRateDssInfo);
-        memcpy((void *)&ptrHsramBuffer->heartInfo, (void *)heartInfo, itemPayloadLen);
+        itemPayloadLen = sizeof(HeartRateDssResult);
+        memcpy((void *)&ptrHsramBuffer->heartRateResult, (void *)heartRateResult, itemPayloadLen);
     }
     else
     {
-        memset((void *)&ptrHsramBuffer->heartInfo, 0, sizeof(HeartRateDssInfo));
+        memset((void *)&ptrHsramBuffer->heartRateResult, 0, sizeof(HeartRateDssResult));
     }
 
     /* Set payload pointer to HSM buffer */
@@ -751,7 +760,7 @@ static void MmwDemo_DPC_ObjectDetection_dpmTask(UArg arg0, UArg arg1)
                 if ((retVal = MmwDemo_copyResultToHSRAM(&gHSRAM,
                                                        result,
                                                        &gMmwDssMCB.dataPathObj.subFrameStats[result->subFrameIdx],
-                                                       (HeartRateDssInfo *)resultBuffer.ptrBuffer[2])) >= 0)
+                                                       (HeartRateDssResult *)resultBuffer.ptrBuffer[2])) >= 0)
                 {
                     /* Update interframe margin with HSRAM copy time */
                     gHSRAM.outStats.interFrameProcessingMargin -= ((Cycleprofiler_getTimeStamp() - startTime) / DSP_CLOCK_MHZ);
@@ -759,9 +768,9 @@ static void MmwDemo_DPC_ObjectDetection_dpmTask(UArg arg0, UArg arg1)
                     /* Update DPM buffer */
                     resultBuffer.ptrBuffer[0] = (uint8_t *)&gHSRAM.result;
                     resultBuffer.ptrBuffer[1] = (uint8_t *)&gHSRAM.outStats;
-                    resultBuffer.ptrBuffer[2] = (uint8_t *)&gHSRAM.heartInfo;
+                    resultBuffer.ptrBuffer[2] = (uint8_t *)&gHSRAM.heartRateResult;
                     resultBuffer.size[1]      = sizeof(MmwDemo_output_message_stats);
-                    resultBuffer.size[2]      = sizeof(HeartRateDssInfo);
+                    resultBuffer.size[2]      = sizeof(HeartRateDssResult);
 
                     /* YES: Results are available send them. */
                     retVal = DPM_sendResult(gMmwDssMCB.dataPathObj.objDetDpmHandle, true, &resultBuffer);

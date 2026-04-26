@@ -19,15 +19,15 @@ Build of libraries done.
 cler4ft package/cfg/mmw_mss_per4ft.c ...
 Finished building: "../mmw_mss.cfg"
  
-Building file: "../mmwdemo_adcconfig.c"
-Invoking: Arm Compiler
-"D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/bin/armcl" -mv7R4 --code_state=16 --float_support=VFPv3D16 -me -O3 --include_path="E:/embedded/ccs_project/work3/long_range_people_det_6843_mss" --include_path="D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages" --include_path="D:/AppGallery/subject/ccs/radar_toolbox_4_00_00_05/source/ti/custom_sdk_files/sdk3" --include_path="D:/AppGallery/subject/ccs/radar_toolbox_4_00_00_05" --include_path="D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include" --define=SOC_XWR68XX --define=SUBSYS_MSS --define=USE_TRACPROC_OVERHEAD_DPU --define=MMWAVE_L3RAM_NUM_BANK=6 --define=MMWAVE_SHMEM_TCMA_NUM_BANK=0 --define=MMWAVE_SHMEM_TCMB_NUM_BANK=0 --define=MMWAVE_SHMEM_BANK_SIZE=0x20000 --define=MMWAVE_L3_CODEMEM_SIZE=0x100 --define=DOWNLOAD_FROM_CCS --define=DebugP_ASSERT_ENABLED --define=_LITTLE_ENDIAN --define=OBJDET_NO_RANGE --define=GTRACK_3D --define=APP_RESOURCE_FILE='<'mmw_res.h'>' -g --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections=on --enum_type=int --abi=eabi --obj_extension=.oer4f --preproc_with_compile --preproc_dependency="mmwdemo_adcconfig.d_raw" --cmd_file="configPkg/compiler.opt"  "../mmwdemo_adcconfig.c"
-Finished building: "../mmwdemo_adcconfig.c"
- 
 Building file: "../mmwdemo_monitor.c"
 Invoking: Arm Compiler
 "D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/bin/armcl" -mv7R4 --code_state=16 --float_support=VFPv3D16 -me -O3 --include_path="E:/embedded/ccs_project/work3/long_range_people_det_6843_mss" --include_path="D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages" --include_path="D:/AppGallery/subject/ccs/radar_toolbox_4_00_00_05/source/ti/custom_sdk_files/sdk3" --include_path="D:/AppGallery/subject/ccs/radar_toolbox_4_00_00_05" --include_path="D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include" --define=SOC_XWR68XX --define=SUBSYS_MSS --define=USE_TRACPROC_OVERHEAD_DPU --define=MMWAVE_L3RAM_NUM_BANK=6 --define=MMWAVE_SHMEM_TCMA_NUM_BANK=0 --define=MMWAVE_SHMEM_TCMB_NUM_BANK=0 --define=MMWAVE_SHMEM_BANK_SIZE=0x20000 --define=MMWAVE_L3_CODEMEM_SIZE=0x100 --define=DOWNLOAD_FROM_CCS --define=DebugP_ASSERT_ENABLED --define=_LITTLE_ENDIAN --define=OBJDET_NO_RANGE --define=GTRACK_3D --define=APP_RESOURCE_FILE='<'mmw_res.h'>' -g --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections=on --enum_type=int --abi=eabi --obj_extension=.oer4f --preproc_with_compile --preproc_dependency="mmwdemo_monitor.d_raw" --cmd_file="configPkg/compiler.opt"  "../mmwdemo_monitor.c"
 Finished building: "../mmwdemo_monitor.c"
+ 
+Building file: "../mmwdemo_adcconfig.c"
+Invoking: Arm Compiler
+"D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/bin/armcl" -mv7R4 --code_state=16 --float_support=VFPv3D16 -me -O3 --include_path="E:/embedded/ccs_project/work3/long_range_people_det_6843_mss" --include_path="D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages" --include_path="D:/AppGallery/subject/ccs/radar_toolbox_4_00_00_05/source/ti/custom_sdk_files/sdk3" --include_path="D:/AppGallery/subject/ccs/radar_toolbox_4_00_00_05" --include_path="D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include" --define=SOC_XWR68XX --define=SUBSYS_MSS --define=USE_TRACPROC_OVERHEAD_DPU --define=MMWAVE_L3RAM_NUM_BANK=6 --define=MMWAVE_SHMEM_TCMA_NUM_BANK=0 --define=MMWAVE_SHMEM_TCMB_NUM_BANK=0 --define=MMWAVE_SHMEM_BANK_SIZE=0x20000 --define=MMWAVE_L3_CODEMEM_SIZE=0x100 --define=DOWNLOAD_FROM_CCS --define=DebugP_ASSERT_ENABLED --define=_LITTLE_ENDIAN --define=OBJDET_NO_RANGE --define=GTRACK_3D --define=APP_RESOURCE_FILE='<'mmw_res.h'>' -g --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections=on --enum_type=int --abi=eabi --obj_extension=.oer4f --preproc_with_compile --preproc_dependency="mmwdemo_adcconfig.d_raw" --cmd_file="configPkg/compiler.opt"  "../mmwdemo_adcconfig.c"
+Finished building: "../mmwdemo_adcconfig.c"
  
 Building file: "../mmwdemo_rfparser.c"
 Invoking: Arm Compiler
@@ -69,24 +69,24 @@ D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/scripts/Ima
 Parsing the input object file, long_range_people_det_6843_mss.xer4f.
 Appending zeros 0
 Appending zeros 256
-Appending zeros 160760
+Appending zeros 152616
 File conversion complete!
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/scripts/ImageCreator/multicore_image_generator/MulticoreImageGen.exe LE 37 0x00000006 long_range_people_det_6843_demo.bin 0x35510000 long_range_people_det_6843_mss.tmp 0xb5510000 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/firmware/radarss/xwr6xxx_radarss_rprc.bin 0xd5510000 E:/embedded/ccs_project/work3/long_range_people_det_6843_dss/Debug/long_range_people_det_6843_dss.bin
 Number of Input Files 3
+Number of zeros 32
 Number of zeros 8
-Number of zeros 8
-Number of zeros 16
+Number of zeros 24
  
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/scripts/ImageCreator/crc_multicore_image/crc_multicore_image.exe long_range_people_det_6843_demo.bin long_range_people_det_6843_demo.tmp
-size of App Image is 565760 bytes
+size of App Image is 568960 bytes
 cur_crc_read_addr 128
-cur_crc_read_addr 171136
-cur_crc_read_addr 418560
+cur_crc_read_addr 163008
+cur_crc_read_addr 410432
 Failed to remove CRC temp file
  
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/scripts/ImageCreator/append_bin_crc/gen_bincrc32.exe long_range_people_det_6843_demo.bin
->>>> Binary CRC32 = 6f9f4820 <<<<
->>>> Total bytes in binary file 565764 <<<<
+>>>> Binary CRC32 = b7dd534d <<<<
+>>>> Total bytes in binary file 568964 <<<<
  
  
 

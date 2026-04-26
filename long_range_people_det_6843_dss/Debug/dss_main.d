@@ -323,6 +323,7 @@ dss_main.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/pack
 dss_main.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/control/mmwavelink/include/rl_monitoring.h
 dss_main.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/control/mmwavelink/include/rl_messages.h
 dss_main.oe674: E:/embedded/ccs_project/work3/long_range_people_det_6843_dss/mmw_res.h
+dss_main.oe674: ../heart_rate_dss_proc.h
 dss_main.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/utils/cycleprofiler/cycle_profiler.h
 dss_main.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/c6x.h
 
@@ -971,6 +972,8 @@ D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/control/
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/control/mmwavelink/include/rl_messages.h:
 
 E:/embedded/ccs_project/work3/long_range_people_det_6843_dss/mmw_res.h:
+
+../heart_rate_dss_proc.h:
 
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/utils/cycleprofiler/cycle_profiler.h:
 

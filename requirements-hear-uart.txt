@@ -1,0 +1,13 @@
+# Runtime environment shared by heart_rate_uart_host.py and hear_uart.py
+#
+# Key constraint:
+# - Keep NumPy on the 1.x line so binary wheels such as matplotlib/pandas
+#   loaded by the PyCharm helpers remain ABI-compatible.
+#
+# Recommended installation:
+#   python -m pip install --upgrade --force-reinstall --no-user -r requirements-hear-uart.txt
+
+numpy>=1.26,<2
+pandas>=2.2,<2.3
+matplotlib>=3.8,<3.9
+pyserial>=3.5,<4

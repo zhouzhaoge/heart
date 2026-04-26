@@ -13,7 +13,7 @@ SECTIONS
     .dpc_l2Heap: { } >> L2SRAM_UMAP0 | L2SRAM_UMAP1
     .demoSharedMem: { } >> HSRAM
 
-#if (TRACKERDPU_ON_DSP)
+#if (TRACKERPROC_ON_DSP)
     .l3code: 
     {
         libtrackerproc_xwr68xx.ae674(.text)

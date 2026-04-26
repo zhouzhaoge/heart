@@ -66,6 +66,14 @@ typedef struct HeartRateDebugOutput_t
     uint16_t valid;
 } HeartRateDebugOutput;
 
+typedef struct HeartRateDssResult_t
+{
+    uint32_t             snapshotSeq;
+    uint32_t             reserved0;
+    HeartRateOutput      output;
+    HeartRateDebugOutput debugOutput;
+} HeartRateDssResult;
+
 #ifdef __cplusplus
 }
 #endif

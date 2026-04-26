@@ -54,6 +54,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "../long_range_people_det_6843_mss/heart_rate_if.h"
+#include "heart_rate_dss_proc.h"
 
 /* mmWave SDK Include Files: */
 #include <ti/drivers/soc/soc.h>
@@ -94,6 +95,18 @@ ObjDetObj *gObjDetObj;
 #endif
 
 static HeartRateDssInfo gHeartRateDssInfo[RL_MAX_SUBFRAMES];
+static HeartRateDssCtx gHeartRateDssCtx[RL_MAX_SUBFRAMES];
+static HeartRateDssScratch gHeartRateDssScratch[RL_MAX_SUBFRAMES];
+static HeartRateDssResult gHeartRateDssResult[RL_MAX_SUBFRAMES];
+static volatile uint32_t gHeartRateEstimateSeq;
+#pragma DATA_SECTION(gHeartRateDssInfo, ".l3ram");
+#pragma DATA_ALIGN(gHeartRateDssInfo, 8);
+#pragma DATA_SECTION(gHeartRateDssCtx, ".l3ram");
+#pragma DATA_ALIGN(gHeartRateDssCtx, 8);
+#pragma DATA_SECTION(gHeartRateDssScratch, ".l3ram");
+#pragma DATA_ALIGN(gHeartRateDssScratch, 8);
+#pragma DATA_SECTION(gHeartRateDssResult, ".l3ram");
+#pragma DATA_ALIGN(gHeartRateDssResult, 8);
 
 /**************************************************************************
  ************************** Local Definitions **********************************
@@ -2015,6 +2028,7 @@ static int32_t DPC_ObjectDetection_start(DPM_DPCHandle handle)
 {
     ObjDetObj *objDetObj;
     int32_t    retVal = 0;
+    uint32_t   subFrameIdx;
 
     objDetObj = (ObjDetObj *)handle;
     DebugP_assert(objDetObj != NULL);
@@ -2029,6 +2043,14 @@ static int32_t DPC_ObjectDetection_start(DPM_DPCHandle handle)
     /* App must issue export of last frame after stop which will switch to sub-frame 0,
      * so start should always see sub-frame indx of 0, check */
     DebugP_assert(objDetObj->subFrameIndx == 0);
+
+    for (subFrameIdx = 0U; subFrameIdx < objDetObj->commonCfg.numSubFrames; subFrameIdx++)
+    {
+        memset((void *)&gHeartRateDssCtx[subFrameIdx], 0, sizeof(HeartRateDssCtx));
+        memset((void *)&gHeartRateDssScratch[subFrameIdx], 0, sizeof(HeartRateDssScratch));
+        memset((void *)&gHeartRateDssResult[subFrameIdx], 0, sizeof(HeartRateDssResult));
+    }
+    gHeartRateEstimateSeq = 0U;
 
     if (objDetObj->commonCfg.numSubFrames > 1U)
     {
@@ -2239,8 +2261,13 @@ int32_t DPC_ObjectDetection_execute(
                                            &gHeartRateDssInfo[objDetObj->subFrameIndx],
                                            objDetObj->stats.frameStartTimeStamp,
                                            objDetObj->stats.frameStartIntCounter);
-        ptrResult->ptrBuffer[2] = (uint8_t *)&gHeartRateDssInfo[objDetObj->subFrameIndx];
-        ptrResult->size[2]      = sizeof(HeartRateDssInfo);
+        HeartRateDss_processFrame(&gHeartRateDssInfo[objDetObj->subFrameIndx],
+                                  &gHeartRateDssCtx[objDetObj->subFrameIndx],
+                                  &gHeartRateDssScratch[objDetObj->subFrameIndx],
+                                  &gHeartRateEstimateSeq,
+                                  &gHeartRateDssResult[objDetObj->subFrameIndx]);
+        ptrResult->ptrBuffer[2] = (uint8_t *)&gHeartRateDssResult[objDetObj->subFrameIndx];
+        ptrResult->size[2]      = sizeof(HeartRateDssResult);
 
         /* clear rest of the result */
         for (i = 1; i < DPM_MAX_BUFFER; i++)

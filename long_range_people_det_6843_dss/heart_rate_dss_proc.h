@@ -39,6 +39,8 @@ typedef struct HeartRateDssCtx_t
     uint16_t samplesSinceEstimate;
     uint16_t selectedRangeBin;
     uint8_t  isFilled;
+    uint8_t  rateConfigLocked;
+    uint16_t reserved0;
     float    frameRateHz;
     float    sampleRateHz;
     float    targetSampleRateHz;
@@ -114,6 +116,7 @@ static void HeartRateDss_resetCtx(HeartRateDssCtx *ctx)
     uint16_t estimateStrideSamples;
     uint32_t prevFrameStartTimeStamp;
     uint32_t snapshotSeq;
+    uint8_t  rateConfigLocked;
 
     frameRateHz             = ctx->frameRateHz;
     sampleRateHz            = ctx->sampleRateHz;
@@ -124,6 +127,7 @@ static void HeartRateDss_resetCtx(HeartRateDssCtx *ctx)
     estimateStrideSamples   = ctx->estimateStrideSamples;
     prevFrameStartTimeStamp = ctx->prevFrameStartTimeStamp;
     snapshotSeq             = ctx->snapshotSeq;
+    rateConfigLocked        = ctx->rateConfigLocked;
 
     memset((void *)ctx, 0, sizeof(HeartRateDssCtx));
 
@@ -136,6 +140,7 @@ static void HeartRateDss_resetCtx(HeartRateDssCtx *ctx)
     ctx->estimateStrideSamples   = estimateStrideSamples;
     ctx->prevFrameStartTimeStamp = prevFrameStartTimeStamp;
     ctx->snapshotSeq             = snapshotSeq;
+    ctx->rateConfigLocked        = rateConfigLocked;
     ctx->selectedRangeBin        = 0xFFFFU;
     ctx->output.selectedRangeBin = 0xFFFFU;
     ctx->output.sampleRateHz     = sampleRateHz;
@@ -193,6 +198,7 @@ static void HeartRateDss_configureCtx(HeartRateDssCtx *ctx,
     float    sampleRateHz;
     uint16_t estimateStrideSamples;
     uint16_t windowLength;
+    uint8_t  resetCtx;
 
     targetSampleRateHz = ctx->targetSampleRateHz;
     if (targetSampleRateHz <= 0.0f)
@@ -236,11 +242,22 @@ static void HeartRateDss_configureCtx(HeartRateDssCtx *ctx,
         windowLength = HEART_RATE_MAX_WINDOW_SAMPLES;
     }
 
+    resetCtx = 0U;
     if ((ctx->numRangeBins != numRangeBins) ||
-        (fabsf(ctx->rangeStep - rangeStep) > 1.0e-6f) ||
-        (fabsf(ctx->sampleRateHz - sampleRateHz) > 1.0e-3f) ||
-        (ctx->windowLength != windowLength) ||
-        (ctx->estimateStrideSamples != estimateStrideSamples))
+        (fabsf(ctx->rangeStep - rangeStep) > 1.0e-6f))
+    {
+        ctx->rateConfigLocked = 0U;
+        resetCtx = 1U;
+    }
+    else if ((ctx->rateConfigLocked == 0U) &&
+             ((fabsf(ctx->sampleRateHz - sampleRateHz) > 1.0e-3f) ||
+              (ctx->windowLength != windowLength) ||
+              (ctx->estimateStrideSamples != estimateStrideSamples)))
+    {
+        resetCtx = 1U;
+    }
+
+    if (resetCtx != 0U)
     {
         ctx->numRangeBins          = numRangeBins;
         ctx->rangeStep             = rangeStep;
@@ -249,15 +266,15 @@ static void HeartRateDss_configureCtx(HeartRateDssCtx *ctx,
         ctx->targetSampleRateHz    = targetSampleRateHz;
         ctx->windowLength          = windowLength;
         ctx->estimateStrideSamples = estimateStrideSamples;
+        ctx->rateConfigLocked      = (uint8_t)(frameRateHz > 0.0f);
         HeartRateDss_resetCtx(ctx);
     }
     else
     {
         ctx->frameRateHz         = frameRateHz;
-        ctx->sampleRateHz        = sampleRateHz;
         ctx->targetSampleRateHz  = targetSampleRateHz;
-        ctx->output.sampleRateHz = sampleRateHz;
-        ctx->output.windowLength = windowLength;
+        ctx->output.sampleRateHz = ctx->sampleRateHz;
+        ctx->output.windowLength = ctx->windowLength;
     }
 }
 
@@ -1177,6 +1194,7 @@ static void HeartRateDss_processFrame(const HeartRateDssInfo *heartInfo,
         ctx->pendingSwitchCount       = 0U;
         ctx->pendingSwitchHeartRateHz = 0.0f;
         HeartRateDss_clearEstimate(ctx);
+        newSnapshotReady              = 1U;
     }
 
     if (ctx->selectedRangeBin < numRangeBins)

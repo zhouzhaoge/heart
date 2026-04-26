@@ -169,7 +169,7 @@ extern "C"
  *  Size of HSRAM Payload data array.
  */
 #define MMWDEMO_HSRAM_PAYLOAD_SIZE (SOC_HSRAM_SIZE - sizeof(DPC_ObjectDetection_ExecuteResult) - \
-                                    sizeof(MmwDemo_output_message_stats) - sizeof(HeartRateDssInfo))
+                                    sizeof(MmwDemo_output_message_stats) - sizeof(HeartRateDssResult))
 
     /**
      * @brief
@@ -183,8 +183,8 @@ extern "C"
         /*! @brief   Output message stats reported by DSS */
         MmwDemo_output_message_stats outStats;
 
-        /*! @brief   1TX1RX range profile used by the heart-rate side chain */
-        HeartRateDssInfo heartInfo;
+        /*! @brief   Heart-rate result produced on DSS */
+        HeartRateDssResult heartRateResult;
 
         /*! @brief   Payload data of result */
         uint8_t payload[MMWDEMO_HSRAM_PAYLOAD_SIZE];

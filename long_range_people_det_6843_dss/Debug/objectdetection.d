@@ -16,6 +16,14 @@ objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000
 objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/stdio.h
 objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/stdarg.h
 objectdetection.oe674: ../../long_range_people_det_6843_mss/heart_rate_if.h
+objectdetection.oe674: ../heart_rate_dss_proc.h
+objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/math.h
+objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/elfnames.h
+objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/abi_prefix.h
+objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/_bsdmath.h
+objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/machine/_limits.h
+objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/mathf.h
+objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/mathl.h
 objectdetection.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/drivers/soc/soc.h
 objectdetection.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/common/mmwave_error.h
 objectdetection.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/drivers/osal/HwiP.h
@@ -213,13 +221,6 @@ objectdetection.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-L
 objectdetection.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/datapath/dpif/dpif_radarcube.h
 objectdetection.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/datapath/dpc/dpu/cfarcaproc/cfarcaprocdsp.h
 objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/stdlib.h
-objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/math.h
-objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/elfnames.h
-objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/abi_prefix.h
-objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/_bsdmath.h
-objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/machine/_limits.h
-objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/mathf.h
-objectdetection.oe674: D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/mathl.h
 objectdetection.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/datapath/dpif/dpif_detmatrix.h
 objectdetection.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/datapath/dpif/dpif_pointcloud.h
 objectdetection.oe674: D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/datapath/dpc/dpu/cfarcaproc/cfarcaproccommon.h
@@ -282,6 +283,22 @@ D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/stdio.h
 D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/stdarg.h:
 
 ../../long_range_people_det_6843_mss/heart_rate_if.h:
+
+../heart_rate_dss_proc.h:
+
+D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/math.h:
+
+D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/elfnames.h:
+
+D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/abi_prefix.h:
+
+D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/_bsdmath.h:
+
+D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/machine/_limits.h:
+
+D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/mathf.h:
+
+D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/mathl.h:
 
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/drivers/soc/soc.h:
 
@@ -676,20 +693,6 @@ D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/datapath
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/datapath/dpc/dpu/cfarcaproc/cfarcaprocdsp.h:
 
 D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/stdlib.h:
-
-D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/math.h:
-
-D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/elfnames.h:
-
-D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/abi_prefix.h:
-
-D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/_bsdmath.h:
-
-D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/machine/_limits.h:
-
-D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/mathf.h:
-
-D:/AppGallery/subject/ccs/ccs/tools/compiler/ti-cgt-c6000_8.3.12/include/mathl.h:
 
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/ti/datapath/dpif/dpif_detmatrix.h:
 
