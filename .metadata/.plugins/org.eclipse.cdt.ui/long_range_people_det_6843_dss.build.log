@@ -38,9 +38,9 @@ Finished building target: "long_range_people_det_6843_dss.xe674"
  
 D:/AppGallery/subject/MMWAVE-SDK/mmwave_sdk_03_06_02_00-LTS/packages/scripts/ImageCreator/out2rprc/out2rprc.exe long_range_people_det_6843_dss.xe674 long_range_people_det_6843_dss.bin
 Parsing the input object file, long_range_people_det_6843_dss.xe674.
-Appending zeros 8504208
-Appending zeros 8510488
-Appending zeros 8510684
+Appending zeros 8504176
+Appending zeros 8510456
+Appending zeros 8510652
 File conversion complete!
  
 
